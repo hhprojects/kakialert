@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'dart:async';
-import 'pages/home_page.dart';
+import 'pages/main_navigation_page.dart';
 import 'pages/landing_page.dart';
 import 'pages/login_page.dart';
 import 'pages/register_page.dart';
@@ -95,6 +95,6 @@ class _AuthWrapperState extends State<AuthWrapper> {
       );
     }
 
-    return _isLoggedIn ? const HomePage() : const LandingPage();
+    return _isLoggedIn ? const MainNavigationPage() : const LandingPage();
   }
 }
