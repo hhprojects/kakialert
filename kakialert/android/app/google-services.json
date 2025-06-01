@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "548190410750",
+    "project_id": "dsta4minions-176b0",
+    "storage_bucket": "dsta4minions-176b0.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:548190410750:android:6e20aa835a13d65513d2af",
+        "android_client_info": {
+          "package_name": "com.example.kakialert"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCFOMjMCy0hZsufpKdkxFBIaaBHi4ElTwE"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
