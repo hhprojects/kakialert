@@ -1,3 +1,13 @@
+// loading .env file
+import java.util.Properties
+import java.io.FileInputStream
+
+val dotenv = Properties()
+val dotenvFile = rootProject.file(".env")
+if (dotenvFile.exists()) {
+    dotenv.load(FileInputStream(dotenvFile))
+}
+
 plugins {
     id("com.android.application")
     id("kotlin-android")
@@ -29,6 +39,10 @@ android {
         versionCode = flutter.versionCode
         versionName = flutter.versionName
         minSdkVersion(23)
+
+        // inject API key from .env file
+        resValue("string", "google_maps_api_key", "\"${dotenv["GOOGLE_MAPS_API_KEY"]}\"")
+
     }
 
     buildTypes {
