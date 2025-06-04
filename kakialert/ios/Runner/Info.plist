@@ -45,5 +45,13 @@
 	<true/>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
+	
+	<!-- Permissions for image picker -->
+	<key>NSCameraUsageDescription</key>
+	<string>This app needs access to camera to take photos for incident reports.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>This app needs access to photo library to select images for incident reports.</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>This app needs access to microphone for video recording.</string>
 </dict>
 </plist>
