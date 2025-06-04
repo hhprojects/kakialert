@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:kakialert/services/auth_service.dart';
 import '../utils/TColorTheme.dart';
 import '../components/custom_button.dart';
 import '../components/custom_text_field.dart';
@@ -34,14 +35,11 @@ class _RegisterPageState extends State<RegisterPage> {
 
       try {
         // Create user with Firebase Auth
-        UserCredential userCredential = await FirebaseAuth.instance
-            .createUserWithEmailAndPassword(
-          email: _emailController.text.trim(),
-          password: _passwordController.text,
+        await AuthService().signUpWithEmailPassword(
+          _emailController.text.trim(),
+          _passwordController.text,
+          _nameController.text.trim(),
         );
-
-        // Update user display name
-        await userCredential.user?.updateDisplayName(_nameController.text.trim());
 
         // Navigate to home page - the AuthWrapper will handle the routing
         if (mounted) {
@@ -75,10 +73,18 @@ class _RegisterPageState extends State<RegisterPage> {
           );
         }
       } catch (e) {
+        print('Registration error: $e'); // Debug print
+        String errorMessage = 'An unexpected error occurred. Please try again.';
+        
+        // Check if it's a Firestore-related error
+        if (e.toString().contains('Failed to create user profile')) {
+          errorMessage = 'Account created but profile setup failed. Please contact support.';
+        }
+        
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('An unexpected error occurred. Please try again.'),
+            SnackBar(
+              content: Text(errorMessage),
               backgroundColor: TColorTheme.primaryRed,
             ),
           );
