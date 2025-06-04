@@ -45,7 +45,7 @@ class _HomePageState extends State<HomePage> {
             // Welcome Section
             Container(
               width: double.infinity,
-              padding: const EdgeInsets.all(20),
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
               decoration: BoxDecoration(
                 color: TColorTheme.white,
                 borderRadius: BorderRadius.circular(16),
@@ -57,24 +57,29 @@ class _HomePageState extends State<HomePage> {
                   ),
                 ],
               ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text(
-                    'Welcome',
-                    style: TextStyle(
-                      fontSize: 16,
-                      color: TColorTheme.gray,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    _userData?['displayName'] ?? _currentUser?.displayName ?? 'Username',
-                    style: TextStyle(
-                      fontSize: 24,
-                      fontWeight: FontWeight.w700,
-                      color: TColorTheme.primaryBlue,
-                    ),
+                  Image.asset('assets/logo.png', width: 50, height: 50),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      Text(
+                        'Welcome,',
+                        style: TextStyle(
+                          fontSize: 16,
+                          color: TColorTheme.black,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        _userData?['displayName'] ?? _currentUser?.displayName ?? 'Username',
+                        style: TextStyle(
+                          fontSize: 16,
+                          color: TColorTheme.black,
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               ),
