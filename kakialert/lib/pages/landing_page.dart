@@ -23,7 +23,7 @@ class _LandingPageState extends State<LandingPage> {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               const Spacer(flex: 2),
-              
+
               // Logo
               Container(
                 width: 200,
@@ -34,7 +34,7 @@ class _LandingPageState extends State<LandingPage> {
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(24),
                   child: Image.asset(
-                    'assets/logo.png',
+                    'images/logo.png',
                     fit: BoxFit.cover,
                     errorBuilder: (context, error, stackTrace) {
                       // Fallback if logo doesn't exist
@@ -53,9 +53,9 @@ class _LandingPageState extends State<LandingPage> {
                   ),
                 ),
               ),
-              
+
               const SizedBox(height: 30),
-              
+
               // Welcome text
               const Text(
                 'Welcome To KakiAlert!',
@@ -66,9 +66,9 @@ class _LandingPageState extends State<LandingPage> {
                 ),
                 textAlign: TextAlign.center,
               ),
-              
+
               const Spacer(flex: 3),
-              
+
               // Login Button
               CustomButton.secondary(
                 text: 'Login',
@@ -79,20 +79,22 @@ class _LandingPageState extends State<LandingPage> {
                   );
                 },
               ),
-              
+
               const SizedBox(height: 16),
-              
+
               // Register Button
               CustomButton.secondary(
                 text: 'Register',
                 onPressed: () {
                   Navigator.push(
                     context,
-                    MaterialPageRoute(builder: (context) => const RegisterPage()),
+                    MaterialPageRoute(
+                      builder: (context) => const RegisterPage(),
+                    ),
                   );
                 },
               ),
-              
+
               const Spacer(flex: 2),
             ],
           ),

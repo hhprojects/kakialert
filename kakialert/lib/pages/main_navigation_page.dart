@@ -120,31 +120,35 @@ class _MainNavigationPageState extends State<MainNavigationPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: TColorTheme.lightGray,
-      appBar: AppBar(
-        title: Text(_pageTitles[_currentIndex]),
-        backgroundColor: TColorTheme.primaryBlue,
-        foregroundColor: TColorTheme.white,
-        elevation: 0,
-        actions: [
-          IconButton(
-            onPressed: _isLoading ? null : _showLogoutDialog,
-            icon:
-                _isLoading
-                    ? SizedBox(
-                      width: 20,
-                      height: 20,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2,
-                        valueColor: AlwaysStoppedAnimation<Color>(
-                          TColorTheme.white,
-                        ),
-                      ),
-                    )
-                    : const Icon(Icons.logout),
-            tooltip: 'Logout',
-          ),
-        ],
-      ),
+      appBar:
+          _currentIndex ==
+                  1 // index of MapPage
+              ? null
+              : AppBar(
+                title: Text(_pageTitles[_currentIndex]),
+                backgroundColor: TColorTheme.primaryRed,
+                foregroundColor: TColorTheme.white,
+                elevation: 0,
+                actions: [
+                  IconButton(
+                    onPressed: _isLoading ? null : _showLogoutDialog,
+                    icon:
+                        _isLoading
+                            ? SizedBox(
+                              width: 20,
+                              height: 20,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                valueColor: AlwaysStoppedAnimation<Color>(
+                                  TColorTheme.white,
+                                ),
+                              ),
+                            )
+                            : const Icon(Icons.logout),
+                    tooltip: 'Logout',
+                  ),
+                ],
+              ),
       body: IndexedStack(index: _currentIndex, children: _pages),
       bottomNavigationBar: Container(
         decoration: BoxDecoration(
