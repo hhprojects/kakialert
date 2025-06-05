@@ -11,6 +11,8 @@ class TColorTheme {
   static const Color gray = Color(0xFF8B8B8B);
   static const Color lightGray = Color(0xFFF5F5FA);
   static const Color white = Color(0xFFFFFFFF);
+  static const Color black = Color(0xFF000000);
+} 
 
   // Incident Colors
   static const Color medical = Color(0xFFDBE790);

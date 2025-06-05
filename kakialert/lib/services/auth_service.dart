@@ -1,5 +1,4 @@
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:google_sign_in/google_sign_in.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 class AuthService {
@@ -78,16 +77,21 @@ class AuthService {
   // Create user document in Firestore
   Future<void> _createUserDocument(User user, String displayName) async {
     try {
+      print('Attempting to create user document for UID: ${user.uid}');
+      
       await _firestore.collection('users').doc(user.uid).set({
         'uid': user.uid,
         'email': user.email,
         'displayName': displayName,
-        'photoURL': user.photoURL,
         'createdAt': FieldValue.serverTimestamp(),
         'lastSignIn': FieldValue.serverTimestamp(),
       });
+      
+      print('User document created successfully for UID: ${user.uid}');
     } catch (e) {
       print('Error creating user document: $e');
+      // Re-throw the error so we know about it in the UI
+      throw Exception('Failed to create user profile: $e');
     }
   }
 
