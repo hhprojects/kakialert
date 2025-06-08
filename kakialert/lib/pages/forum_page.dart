@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../utils/TColorTheme.dart';
-import '../services/cloudinary_service.dart';
 
 class ForumPage extends StatefulWidget {
   const ForumPage({super.key});
@@ -11,7 +10,6 @@ class ForumPage extends StatefulWidget {
 }
 
 class _ForumPageState extends State<ForumPage> {
-  final CloudinaryService _cloudinaryService = CloudinaryService();
   List<Map<String, dynamic>> _incidents = [];
   bool _isLoading = true;
   String _error = '';

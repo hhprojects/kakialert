@@ -337,38 +337,6 @@ class _FormDetailPageState extends State<FormDetailPage> {
     );
   }
 
-  Widget _buildAIAnalysisIndicator() {
-    if (widget.aiAnalysis == null) return SizedBox.shrink();
-    
-    return Container(
-      margin: EdgeInsets.only(bottom: 16),
-      padding: EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: Colors.blue.shade50,
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: Colors.blue.shade200),
-      ),
-      child: Row(
-        children: [
-          Icon(
-            Icons.smart_toy,
-            color: Colors.blue.shade600,
-            size: 20,
-          ),
-          SizedBox(width: 8),
-          Expanded(
-            child: Text(
-              'AI has analyzed your images and pre-filled the form. You can edit any field as needed.',
-              style: TextStyle(
-                fontSize: 12,
-                color: Colors.blue.shade700,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
 
   Widget _buildSubjectSelection() {
     return Column(
