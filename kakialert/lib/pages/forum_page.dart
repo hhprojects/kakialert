@@ -1,14 +1,380 @@
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import '../utils/TColorTheme.dart';
+import '../services/cloudinary_service.dart';
 
-class ForumPage extends StatelessWidget {
+class ForumPage extends StatefulWidget {
   const ForumPage({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: TColorTheme.lightGray,
-      body:Placeholder()
+  State<ForumPage> createState() => _ForumPageState();
+}
+
+class _ForumPageState extends State<ForumPage> {
+  final CloudinaryService _cloudinaryService = CloudinaryService();
+  List<Map<String, dynamic>> _incidents = [];
+  bool _isLoading = true;
+  String _error = '';
+
+  @override
+  void initState() {
+    super.initState();
+    _loadIncidents();
+  }
+
+  Future<void> _loadIncidents() async {
+    try {
+      setState(() {
+        _isLoading = true;
+        _error = '';
+      });
+
+      final QuerySnapshot snapshot = await FirebaseFirestore.instance
+          .collection('incidents')
+          .orderBy('createdAt', descending: true)
+          .get();
+
+      final incidents = snapshot.docs.map((doc) {
+        final data = doc.data() as Map<String, dynamic>;
+        data['id'] = doc.id; // Add document ID
+        return data;
+      }).toList();
+
+      setState(() {
+        _incidents = incidents;
+        _isLoading = false;
+      });
+    } catch (e) {
+      setState(() {
+        _error = 'Failed to load incidents: ${e.toString()}';
+        _isLoading = false;
+      });
+    }
+  }
+
+  Future<void> _refreshIncidents() async {
+    await _loadIncidents();
+  }
+
+  String _getIncidentIcon(String? incidentType) {
+    switch (incidentType?.toLowerCase()) {
+      case 'fire':
+        return '🔥';
+      case 'medical':
+        return '🏥';
+      case 'accident':
+        return '🚗';
+      case 'violence':
+        return '⚠️';
+      case 'rescue':
+        return '🚑';
+      case 'hdb_facilities':
+        return '🏢';
+      case 'mrt':
+        return '🚇';
+      default:
+        return '📍';
+    }
+  }
+
+  String _formatDateTime(dynamic datetime) {
+    if (datetime == null) return 'Unknown time';
+    
+    try {
+      DateTime dateTime;
+      if (datetime is Timestamp) {
+        dateTime = datetime.toDate();
+      } else if (datetime is String) {
+        dateTime = DateTime.parse(datetime);
+      } else {
+        return 'Unknown time';
+      }
+
+      final now = DateTime.now();
+      final difference = now.difference(dateTime);
+
+      if (difference.inMinutes < 1) {
+        return 'Just now';
+      } else if (difference.inHours < 1) {
+        return '${difference.inMinutes}m ago';
+      } else if (difference.inDays < 1) {
+        return '${difference.inHours}h ago';
+      } else if (difference.inDays < 7) {
+        return '${difference.inDays}d ago';
+      } else {
+        return '${dateTime.day}/${dateTime.month}/${dateTime.year}';
+      }
+    } catch (e) {
+      return 'Unknown time';
+    }
+  }
+
+  String _truncateDescription(String? description, int maxLength) {
+    if (description == null || description.isEmpty) {
+      return 'No description provided';
+    }
+    
+    if (description.length <= maxLength) {
+      return description;
+    }
+    
+    return '${description.substring(0, maxLength)}...';
+  }
+
+  Widget _buildIncidentCard(Map<String, dynamic> incident) {
+    final imageUrls = incident['imageUrls'] as List<dynamic>?;
+    final firstImageUrl = imageUrls?.isNotEmpty == true ? imageUrls!.first as String : null;
+    final title = incident['title'] as String? ?? 'Untitled Incident';
+    final description = incident['description'] as String? ?? '';
+    final incidentType = incident['incident'] as String? ?? 'others';
+    final location = incident['location'] as String? ?? 'Unknown location';
+    final displayName = incident['displayName'] as String? ?? 'Anonymous';
+    final datetime = incident['datetime'] ?? incident['createdAt'];
+
+    return Card(
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      elevation: 2,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(12),
+        onTap: () {
+          // TODO: Navigate to incident detail page
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Tapped on: $title')),
+          );
+        },
+        child: Padding(
+          padding: const EdgeInsets.all(12),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Image on the left
+              Container(
+                width: 80,
+                height: 80,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(8),
+                  color: Colors.grey.shade200,
+                ),
+                child: firstImageUrl != null
+                    ? ClipRRect(
+                        borderRadius: BorderRadius.circular(8),
+                        child: Image.network(
+                          firstImageUrl,
+                          fit: BoxFit.cover,
+                          loadingBuilder: (context, child, loadingProgress) {
+                            if (loadingProgress == null) return child;
+                            return Container(
+                              color: Colors.grey.shade200,
+                              child: const Center(
+                                child: CircularProgressIndicator(strokeWidth: 2),
+                              ),
+                            );
+                          },
+                          errorBuilder: (context, error, stackTrace) => Container(
+                            color: Colors.grey.shade300,
+                            child: Icon(
+                              Icons.image_not_supported,
+                              color: Colors.grey.shade600,
+                              size: 30,
+                            ),
+                          ),
+                        ),
+                      )
+                    : Container(
+                        decoration: BoxDecoration(
+                          color: TColorTheme.getIncidentColor(incidentType),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Center(
+                          child: Text(
+                            _getIncidentIcon(incidentType),
+                            style: const TextStyle(fontSize: 30),
+                          ),
+                        ),
+                      ),
+              ),
+              
+              const SizedBox(width: 12),
+              
+              // Content on the right
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Incident type and time
+                    Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: TColorTheme.getIncidentColor(incidentType),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Text(
+                            incidentType.toUpperCase(),
+                            style: const TextStyle(
+                              fontSize: 10,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            _formatDateTime(datetime),
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: Colors.grey.shade600,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    
+                    const SizedBox(height: 6),
+                    
+                    // Title
+                    Text(
+                      title,
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.black,
+                      ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    
+                    const SizedBox(height: 4),
+                    
+                    // Truncated description
+                    Text(
+                      _truncateDescription(description, 100),
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: Colors.grey.shade700,
+                      ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    
+                    const SizedBox(height: 6),
+                    
+                    // Location and user info
+                    Row(
+                      children: [
+                        Icon(
+                          Icons.location_on,
+                          size: 14,
+                          color: Colors.grey.shade500,
+                        ),
+                        const SizedBox(width: 4),
+                        Expanded(
+                          child: Text(
+                            location,
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: Colors.grey.shade600,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          'by $displayName',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Colors.grey.shade500,
+                            fontStyle: FontStyle.italic,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return _isLoading
+          ? const Center(
+              child: CircularProgressIndicator(),
+            )
+          : _error.isNotEmpty
+              ? Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        Icons.error_outline,
+                        size: 64,
+                        color: Colors.grey.shade400,
+                      ),
+                      const SizedBox(height: 16),
+                      Text(
+                        _error,
+                        style: TextStyle(
+                          color: Colors.grey.shade600,
+                          fontSize: 16,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                      const SizedBox(height: 16),
+                      ElevatedButton(
+                        onPressed: _refreshIncidents,
+                        child: const Text('Retry'),
+                      ),
+                    ],
+                  ),
+                )
+              : _incidents.isEmpty
+                  ? Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            Icons.forum_outlined,
+                            size: 64,
+                            color: Colors.grey.shade400,
+                          ),
+                          const SizedBox(height: 16),
+                          Text(
+                            'No incidents reported yet',
+                            style: TextStyle(
+                              color: Colors.grey.shade600,
+                              fontSize: 18,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            'Be the first to report an incident!',
+                            style: TextStyle(
+                              color: Colors.grey.shade500,
+                              fontSize: 14,
+                            ),
+                          ),
+                        ],
+                      ),
+                    )
+                  : RefreshIndicator(
+                      onRefresh: _refreshIncidents,
+                      child: ListView.builder(
+                        padding: const EdgeInsets.symmetric(vertical: 8),
+                        itemCount: _incidents.length,
+                        itemBuilder: (context, index) {
+                          return _buildIncidentCard(_incidents[index]);
+                        },
+                      ),
+                    );
   }
 } 

@@ -61,7 +61,7 @@ class _HomePageState extends State<HomePage> {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Image.asset('assets/logo.png', width: 50, height: 50),
+                  Image.asset('images/logo.png', width: 50, height: 50),
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.end,
                     children: [

@@ -105,6 +105,12 @@ class MapController {
         return 'assets/icons/accident.png';
       case 'violence':
         return 'assets/icons/violence.png';
+      case 'rescue':
+        return 'assets/icons/rescue.png';
+      case 'hdb_facilities':
+        return 'assets/icons/hdb.png';
+      case 'mrt':
+        return 'assets/icons/mrt.png';
       default:
         return 'assets/icons/others.png';
     }

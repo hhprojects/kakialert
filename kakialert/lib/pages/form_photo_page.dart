@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'dart:io';
 import 'package:image_picker/image_picker.dart';
 import 'form_detail_page.dart';
+import '../services/openrouter_service.dart';
 
 class FormPhotoPage extends StatefulWidget {
   const FormPhotoPage({super.key});
@@ -12,49 +13,22 @@ class FormPhotoPage extends StatefulWidget {
 
 class _FormPhotoPageState extends State<FormPhotoPage> {
   final ImagePicker _picker = ImagePicker();
-  List<XFile> _selectedMedia = [];
+  final OpenRouterService _aiService = OpenRouterService();
+  List<XFile> _selectedImages = [];
+  bool _isAnalyzing = false;
 
   @override
   void initState() {
     super.initState();
   }
 
-  Future<void> _pickMediaFromGallery() async {
-    showModalBottomSheet(
-      context: context,
-      builder: (BuildContext context) {
-        return SafeArea(
-          child: Wrap(
-            children: [
-              ListTile(
-                leading: const Icon(Icons.photo_library),
-                title: const Text('Select Images'),
-                onTap: () {
-                  Navigator.pop(context);
-                  _pickImagesFromGallery();
-                },
-              ),
-              ListTile(
-                leading: const Icon(Icons.video_library),
-                title: const Text('Select Videos'),
-                onTap: () {
-                  Navigator.pop(context);
-                  _pickVideoFromGallery();
-                },
-              ),
-            ],
-          ),
-        );
-      },
-    );
-  }
-
+  // Simplified gallery picker - only images
   Future<void> _pickImagesFromGallery() async {
     try {
       final List<XFile> images = await _picker.pickMultiImage();
       if (images.isNotEmpty) {
         setState(() {
-          _selectedMedia.addAll(images);
+          _selectedImages.addAll(images);
         });
       }
     } catch (e) {
@@ -62,55 +36,13 @@ class _FormPhotoPageState extends State<FormPhotoPage> {
     }
   }
 
-  Future<void> _pickVideoFromGallery() async {
-    try {
-      final XFile? video = await _picker.pickVideo(source: ImageSource.gallery);
-      if (video != null) {
-        setState(() {
-          _selectedMedia.add(video);
-        });
-      }
-    } catch (e) {
-      _showErrorSnackBar('Error selecting video: $e');
-    }
-  }
-
-  Future<void> _pickMediaFromCamera() async {
-    showModalBottomSheet(
-      context: context,
-      builder: (BuildContext context) {
-        return SafeArea(
-          child: Wrap(
-            children: [
-              ListTile(
-                leading: const Icon(Icons.camera_alt),
-                title: const Text('Take Photo'),
-                onTap: () {
-                  Navigator.pop(context);
-                  _pickImageFromCamera();
-                },
-              ),
-              ListTile(
-                leading: const Icon(Icons.videocam),
-                title: const Text('Record Video'),
-                onTap: () {
-                  Navigator.pop(context);
-                  _pickVideoFromCamera();
-                },
-              ),
-            ],
-          ),
-        );
-      },
-    );
-  }
-
+  // Simplified camera picker - only images
   Future<void> _pickImageFromCamera() async {
     try {
       final XFile? image = await _picker.pickImage(source: ImageSource.camera);
       if (image != null) {
         setState(() {
-          _selectedMedia.add(image);
+          _selectedImages.add(image);
         });
       }
     } catch (e) {
@@ -118,22 +50,9 @@ class _FormPhotoPageState extends State<FormPhotoPage> {
     }
   }
 
-  Future<void> _pickVideoFromCamera() async {
-    try {
-      final XFile? video = await _picker.pickVideo(source: ImageSource.camera);
-      if (video != null) {
-        setState(() {
-          _selectedMedia.add(video);
-        });
-      }
-    } catch (e) {
-      _showErrorSnackBar('Error recording video: $e');
-    }
-  }
-
-  void _removeMedia(int index) {
+  void _removeImage(int index) {
     setState(() {
-      _selectedMedia.removeAt(index);
+      _selectedImages.removeAt(index);
     });
   }
 
@@ -146,13 +65,8 @@ class _FormPhotoPageState extends State<FormPhotoPage> {
     );
   }
 
-  bool _isVideoFile(String path) {
-    final videoExtensions = ['.mp4', '.mov', '.avi', '.mkv', '.wmv', '.flv', '.webm'];
-    return videoExtensions.any((ext) => path.toLowerCase().endsWith(ext));
-  }
-
-  Widget _buildMediaPreview() {
-    if (_selectedMedia.isEmpty) {
+  Widget _buildImagePreview() {
+    if (_selectedImages.isEmpty) {
       return Container();
     }
 
@@ -161,7 +75,7 @@ class _FormPhotoPageState extends State<FormPhotoPage> {
       children: [
         const SizedBox(height: 16),
         const Text(
-          'Selected Media',
+          'Selected Images',
           style: TextStyle(
             fontSize: 14,
             fontWeight: FontWeight.w600,
@@ -173,10 +87,9 @@ class _FormPhotoPageState extends State<FormPhotoPage> {
           height: 100,
           child: ListView.builder(
             scrollDirection: Axis.horizontal,
-            itemCount: _selectedMedia.length,
+            itemCount: _selectedImages.length,
             itemBuilder: (context, index) {
-              final media = _selectedMedia[index];
-              final isVideo = _isVideoFile(media.path);
+              final image = _selectedImages[index];
               
               return Container(
                 margin: const EdgeInsets.only(right: 8),
@@ -184,61 +97,18 @@ class _FormPhotoPageState extends State<FormPhotoPage> {
                   children: [
                     ClipRRect(
                       borderRadius: BorderRadius.circular(8),
-                      child: Container(
+                      child: Image.file(
+                        File(image.path),
                         width: 80,
                         height: 80,
-                        decoration: BoxDecoration(
-                          color: Colors.grey.shade300,
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: isVideo
-                            ? Stack(
-                                alignment: Alignment.center,
-                                children: [
-                                  Container(
-                                    width: 80,
-                                    height: 80,
-                                    color: Colors.black87,
-                                    child: const Icon(
-                                      Icons.play_circle_fill,
-                                      color: Colors.white,
-                                      size: 32,
-                                    ),
-                                  ),
-                                  Positioned(
-                                    bottom: 4,
-                                    left: 4,
-                                    child: Container(
-                                      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
-                                      decoration: BoxDecoration(
-                                        color: Colors.black54,
-                                        borderRadius: BorderRadius.circular(4),
-                                      ),
-                                      child: const Text(
-                                        'VIDEO',
-                                        style: TextStyle(
-                                          color: Colors.white,
-                                          fontSize: 8,
-                                          fontWeight: FontWeight.bold,
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              )
-                            : Image.file(
-                                File(media.path),
-                                width: 80,
-                                height: 80,
-                                fit: BoxFit.cover,
-                              ),
+                        fit: BoxFit.cover,
                       ),
                     ),
                     Positioned(
                       top: 4,
                       right: 4,
                       child: GestureDetector(
-                        onTap: () => _removeMedia(index),
+                        onTap: () => _removeImage(index),
                         child: Container(
                           decoration: const BoxDecoration(
                             color: Colors.red,
@@ -262,12 +132,54 @@ class _FormPhotoPageState extends State<FormPhotoPage> {
     );
   }
 
-  void _navigateToDetailPage() {
-    Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (context) => FormDetailPage(selectedMedia: _selectedMedia),
-      ),
-    );
+  Future<void> _navigateToDetailPage() async {
+    if (_selectedImages.isEmpty) {
+      _showErrorSnackBar('Please select at least one photo');
+      return;
+    }
+
+    setState(() {
+      _isAnalyzing = true;
+    });
+
+    try {
+      // Analyze images with AI
+      final analysisResult = await _aiService.analyzeIncidentImages(
+        imagePaths: _selectedImages.map((image) => image.path).toList(),
+      );
+
+      // Navigate to detail page with analysis results
+      if (mounted) {
+        Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (context) => FormDetailPage(
+              selectedMedia: _selectedImages,
+              aiAnalysis: analysisResult,
+            ),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        _showErrorSnackBar('AI Analysis failed: ${e.toString()}. You can still fill the form manually.');
+        
+        // Navigate without AI analysis if it fails
+        Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (context) => FormDetailPage(
+              selectedMedia: _selectedImages,
+              aiAnalysis: null,
+            ),
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isAnalyzing = false;
+        });
+      }
+    }
   }
 
   @override
@@ -282,7 +194,7 @@ class _FormPhotoPageState extends State<FormPhotoPage> {
           onPressed: () => Navigator.of(context).pop(),
         ),
         title: const Text(
-          'Upload Media',
+          'Upload Photos',
           style: TextStyle(
             color: Colors.black,
             fontSize: 18,
@@ -296,9 +208,9 @@ class _FormPhotoPageState extends State<FormPhotoPage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Upload Media Section
+            // Upload Photos Section
             const Text(
-              'Upload/Take Photos & Videos',
+              'Upload/Take Photos',
               style: TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.w600,
@@ -309,7 +221,7 @@ class _FormPhotoPageState extends State<FormPhotoPage> {
             
             // Upload Area
             GestureDetector(
-              onTap: _pickMediaFromGallery,
+              onTap: _pickImagesFromGallery,
               child: Container(
                 width: double.infinity,
                 height: 120,
@@ -328,7 +240,7 @@ class _FormPhotoPageState extends State<FormPhotoPage> {
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      'Select Photos or Videos',
+                      'Select Photos from Gallery',
                       style: TextStyle(
                         color: Colors.grey.shade600,
                         fontSize: 14,
@@ -365,7 +277,7 @@ class _FormPhotoPageState extends State<FormPhotoPage> {
             SizedBox(
               width: double.infinity,
               child: OutlinedButton(
-                onPressed: _pickMediaFromCamera,
+                onPressed: _pickImageFromCamera,
                 style: OutlinedButton.styleFrom(
                   padding: const EdgeInsets.symmetric(vertical: 12),
                   side: BorderSide(color: Colors.grey.shade400),
@@ -374,7 +286,7 @@ class _FormPhotoPageState extends State<FormPhotoPage> {
                   ),
                 ),
                 child: const Text(
-                  'Open Camera & Take Photo/Video',
+                  'Open Camera & Take Photo',
                   style: TextStyle(
                     color: Colors.black,
                     fontSize: 14,
@@ -383,7 +295,7 @@ class _FormPhotoPageState extends State<FormPhotoPage> {
               ),
             ),
             
-            _buildMediaPreview(),
+            _buildImagePreview(),
             
             const SizedBox(height: 32),
             
@@ -391,7 +303,7 @@ class _FormPhotoPageState extends State<FormPhotoPage> {
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
-                onPressed: _navigateToDetailPage,
+                onPressed: _isAnalyzing ? null : _navigateToDetailPage,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFFFF6B6B), // Red color like in the image
                   padding: const EdgeInsets.symmetric(vertical: 16),
@@ -399,14 +311,37 @@ class _FormPhotoPageState extends State<FormPhotoPage> {
                     borderRadius: BorderRadius.circular(8),
                   ),
                 ),
-                child: const Text(
-                  'Next',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
+                child: _isAnalyzing
+                    ? Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                            ),
+                          ),
+                          SizedBox(width: 12),
+                          Text(
+                            'Analyzing Images...',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
+                      )
+                    : const Text(
+                        'Next',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
               ),
             ),
             

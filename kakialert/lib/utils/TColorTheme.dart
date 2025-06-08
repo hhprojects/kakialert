@@ -21,6 +21,7 @@ class TColorTheme {
   static const Color hdb = Color(0xFFA6D4F5);
   static const Color others = Color(0xFFCBCBCB);
   static const Color rescue = Color(0xFFF5E8A6);
+  static const Color mrt = Color(0xFFA7E5D4);
 
   static Color getIncidentColor(String incidentType) {
     switch (incidentType.toLowerCase()) {
@@ -33,9 +34,12 @@ class TColorTheme {
       case 'violence':
         return TColorTheme.violence;
       case 'hdb':
+      case 'hdb_facilities':
         return TColorTheme.hdb;
       case 'rescue':
         return TColorTheme.rescue;
+      case 'mrt':
+        return TColorTheme.mrt;
       default:
         return TColorTheme.others;
     }
