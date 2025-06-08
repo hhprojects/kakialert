@@ -51,6 +51,10 @@ dependencies:
   # Image picker for camera and file selection
   image_picker: ^1.0.4
 
+  # Cloudinary dependencies
+  cloudinary_url_gen: ^1.0.0
+  cloudinary_api: ^1.0.0
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

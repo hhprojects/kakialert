@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:kakialert/pages/form_page.dart';
+import 'package:kakialert/pages/form_photo_page.dart';
 import '../utils/TColorTheme.dart';
 import '../services/auth_service.dart';
 
@@ -99,7 +99,7 @@ class _HomePageState extends State<HomePage> {
                     title: 'Submit',
                     subtitle: 'Incidents',
                     onTap: () {
-                      Navigator.push(context, MaterialPageRoute(builder: (context) => const FormPage()));
+                      Navigator.push(context, MaterialPageRoute(builder: (context) => const FormPhotoPage()));
                     },
                   ),
                 ),
