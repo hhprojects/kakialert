@@ -3,7 +3,7 @@ import 'package:geolocator/geolocator.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:kakialert/controllers/incident_controller.dart';
 import 'package:kakialert/controllers/map_controller.dart';
-import 'package:kakialert/models/incident.dart';
+import 'package:kakialert/models/incident_model.dart';
 import 'package:kakialert/pages/forum_page.dart';
 import 'package:kakialert/utils/TColorTheme.dart';
 

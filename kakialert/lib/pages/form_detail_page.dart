@@ -5,8 +5,9 @@ import '../controllers/map_controller.dart';
 import '../controllers/incident_controller.dart';
 import '../services/cloudinary_service.dart';
 import '../services/auth_service.dart';
+import '../services/incident_service.dart';
+import '../models/incident_model.dart';
 import 'package:geocoding/geocoding.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 
 class FormDetailPage extends StatefulWidget {
   final List<XFile> selectedMedia;
@@ -42,6 +43,7 @@ class _FormDetailPageState extends State<FormDetailPage> {
   // Services
   final CloudinaryService _cloudinaryService = CloudinaryService();
   final AuthService _authService = AuthService();
+  final IncidentService _incidentService = IncidentService();
 
   // Define subject options
   final List<Map<String, dynamic>> _subjectOptions = [
@@ -84,7 +86,7 @@ class _FormDetailPageState extends State<FormDetailPage> {
     {
       'id': 'mrt',
       'label': 'MRT',
-      'iconPath': 'assets/icons/mrt.png', // You can add a train icon here
+      'iconPath': 'assets/icons/mrt.png', 
       'color': Color(0xFFA7E5D4), // Light teal
     },
     {
@@ -485,27 +487,24 @@ class _FormDetailPageState extends State<FormDetailPage> {
         throw Exception('Failed to upload images');
       }
 
-      // 4. Create incident document for Firestore
-      final incidentData = {
-        'title': _titleController.text.trim(),
-        'datetime': DateTime.now().toIso8601String(),
-        'description': _descriptionController.text.trim(),
-        'incident': _selectedSubject, // subject category
-        'longitude': locationCoords.longitude,
-        'latitude': locationCoords.latitude,
-        'location': _locationController.text.trim(),
-        'imageUrls': imageUrls, // Store all uploaded image URLs
-        'imagePublicIds': imagePublicIds, // Store public IDs for management
-        'userId': currentUser.uid,
-        'userEmail': currentUser.email,
-        'displayName': displayName,
-        'createdAt': FieldValue.serverTimestamp(),
-      };
+      // 4. Create incident object
+      final incident = Incident(
+        title: _titleController.text.trim(),
+        incident: _selectedSubject!, // subject category
+        description: _descriptionController.text.trim(),
+        location: _locationController.text.trim(),
+        latitude: locationCoords.latitude,
+        longitude: locationCoords.longitude,
+        imageUrls: imageUrls,
+        imagePublicIds: imagePublicIds,
+        userId: currentUser.uid,
+        userEmail: currentUser.email ?? '',
+        displayName: displayName,
+        datetime: DateTime.now(),
+      );
 
-      // 5. Save to Firebase Firestore
-      await FirebaseFirestore.instance
-          .collection('incidents')
-          .add(incidentData);
+      // 5. Save to Firebase Firestore using IncidentService
+      await _incidentService.createIncident(incident);
 
       // 6. Show success message
       if (mounted) {

@@ -1,9 +1,13 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import '../models/user_model.dart';
+import 'user_service.dart';
+import '../models/user_model.dart';
+import 'user_service.dart';
 
 class AuthService {
   final FirebaseAuth _auth = FirebaseAuth.instance;
-  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  final UserService _userService = UserService();
 
   // Get current user
   User? get currentUser => _auth.currentUser;
@@ -31,8 +35,15 @@ class AuthService {
       // Update display name
       await userCredential.user?.updateDisplayName(displayName);
 
-      // Create user document in Firestore
-      await _createUserDocument(userCredential.user!, displayName);
+      // Create user document in Firestore using UserService
+      if (userCredential.user != null) {
+        final userModel = UserModel(
+          uid: userCredential.user!.uid,
+          email: userCredential.user!.email ?? email,
+          displayName: displayName,
+        );
+        await _userService.createUser(userModel);
+      }
 
       return userCredential;
     } catch (e) {
@@ -74,58 +85,28 @@ class AuthService {
     }
   }
 
-  // Create user document in Firestore
-  Future<void> _createUserDocument(User user, String displayName) async {
-    try {
-      print('Attempting to create user document for UID: ${user.uid}');
-      
-      await _firestore.collection('users').doc(user.uid).set({
-        'uid': user.uid,
-        'email': user.email,
-        'displayName': displayName,
-        'createdAt': FieldValue.serverTimestamp(),
-        'lastSignIn': FieldValue.serverTimestamp(),
-      });
-      
-      print('User document created successfully for UID: ${user.uid}');
-    } catch (e) {
-      print('Error creating user document: $e');
-      // Re-throw the error so we know about it in the UI
-      throw Exception('Failed to create user profile: $e');
-    }
-  }
-
   // Update user's last sign in time
   Future<void> updateLastSignIn() async {
-    if (_auth.currentUser != null) {
-      try {
-        await _firestore.collection('users').doc(_auth.currentUser!.uid).update({
-          'lastSignIn': FieldValue.serverTimestamp(),
-        });
-      } catch (e) {
-        print('Error updating last sign in: $e');
-      }
-    }
+    await _userService.updateLastSignIn();
   }
-  // Get user data from Firestore
+
+  // Get user data from Firestore (for backward compatibility)
   Future<Map<String, dynamic>?> getUserData() async {
-    if (_auth.currentUser != null) {
-      try {
-        DocumentSnapshot doc = await _firestore
-            .collection('users')
-            .doc(_auth.currentUser!.uid)
-            .get();
-        
-        if (doc.exists) {
-          return doc.data() as Map<String, dynamic>?;
-        } else {
-          return null;
-        }
-      } catch (e) {
-        print('Error getting user data: $e');
-        return null;
-      }
-    }
-    return null;
+    return await _userService.getCurrentUserData();
   }
-} 
+
+  // Get user model
+  Future<UserModel?> getUserModel() async {
+    return await _userService.getCurrentUser();
+  }
+
+  // Legacy method - kept for backward compatibility
+  Future<void> _createUserDocument(User user, String displayName) async {
+    final userModel = UserModel(
+      uid: user.uid,
+      email: user.email ?? '',
+      displayName: displayName,
+    );
+    await _userService.createUser(userModel);
+  }
+}

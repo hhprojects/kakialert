@@ -6,7 +6,7 @@ import 'package:geolocator/geolocator.dart' as geo;
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:kakialert/controllers/incident_controller.dart';
-import 'package:kakialert/models/incident.dart';
+import 'package:kakialert/models/incident_model.dart';
 
 class MapController {
   final IncidentController incidentController;

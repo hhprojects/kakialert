@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import '../utils/TColorTheme.dart';
+import '../services/incident_service.dart';
+import '../models/incident_model.dart';
+import 'discussion_page.dart';
 
 class ForumPage extends StatefulWidget {
   const ForumPage({super.key});
@@ -10,7 +12,8 @@ class ForumPage extends StatefulWidget {
 }
 
 class _ForumPageState extends State<ForumPage> {
-  List<Map<String, dynamic>> _incidents = [];
+  final IncidentService _incidentService = IncidentService();
+  List<Incident> _incidents = [];
   bool _isLoading = true;
   String _error = '';
 
@@ -27,16 +30,7 @@ class _ForumPageState extends State<ForumPage> {
         _error = '';
       });
 
-      final QuerySnapshot snapshot = await FirebaseFirestore.instance
-          .collection('incidents')
-          .orderBy('createdAt', descending: true)
-          .get();
-
-      final incidents = snapshot.docs.map((doc) {
-        final data = doc.data() as Map<String, dynamic>;
-        data['id'] = doc.id; // Add document ID
-        return data;
-      }).toList();
+      final incidents = await _incidentService.getAllIncidents();
 
       setState(() {
         _incidents = incidents;
@@ -75,21 +69,12 @@ class _ForumPageState extends State<ForumPage> {
     }
   }
 
-  String _formatDateTime(dynamic datetime) {
+  String _formatDateTime(DateTime? datetime) {
     if (datetime == null) return 'Unknown time';
     
     try {
-      DateTime dateTime;
-      if (datetime is Timestamp) {
-        dateTime = datetime.toDate();
-      } else if (datetime is String) {
-        dateTime = DateTime.parse(datetime);
-      } else {
-        return 'Unknown time';
-      }
-
       final now = DateTime.now();
-      final difference = now.difference(dateTime);
+      final difference = now.difference(datetime);
 
       if (difference.inMinutes < 1) {
         return 'Just now';
@@ -100,7 +85,7 @@ class _ForumPageState extends State<ForumPage> {
       } else if (difference.inDays < 7) {
         return '${difference.inDays}d ago';
       } else {
-        return '${dateTime.day}/${dateTime.month}/${dateTime.year}';
+        return '${datetime.day}/${datetime.month}/${datetime.year}';
       }
     } catch (e) {
       return 'Unknown time';
@@ -119,15 +104,14 @@ class _ForumPageState extends State<ForumPage> {
     return '${description.substring(0, maxLength)}...';
   }
 
-  Widget _buildIncidentCard(Map<String, dynamic> incident) {
-    final imageUrls = incident['imageUrls'] as List<dynamic>?;
-    final firstImageUrl = imageUrls?.isNotEmpty == true ? imageUrls!.first as String : null;
-    final title = incident['title'] as String? ?? 'Untitled Incident';
-    final description = incident['description'] as String? ?? '';
-    final incidentType = incident['incident'] as String? ?? 'others';
-    final location = incident['location'] as String? ?? 'Unknown location';
-    final displayName = incident['displayName'] as String? ?? 'Anonymous';
-    final datetime = incident['datetime'] ?? incident['createdAt'];
+  Widget _buildIncidentCard(Incident incident) {
+    final firstImageUrl = incident.firstImageUrl;
+    final title = incident.title;
+    final description = incident.description;
+    final incidentType = incident.incident;
+    final location = incident.location;
+    final displayName = incident.displayName;
+    final datetime = incident.createdAt ?? incident.datetime;
 
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -136,9 +120,11 @@ class _ForumPageState extends State<ForumPage> {
       child: InkWell(
         borderRadius: BorderRadius.circular(12),
         onTap: () {
-          // TODO: Navigate to incident detail page
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Tapped on: $title')),
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => DiscussionPage(incident: incident),
+            ),
           );
         },
         child: Padding(

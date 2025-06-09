@@ -1,60 +1,154 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:kakialert/models/incident.dart';
+import 'package:kakialert/models/incident_model.dart';
+import '../services/incident_service.dart';
 
 class IncidentController {
+  final IncidentService _incidentService = IncidentService();
   List<Incident> incidents = [];
 
+  // Load all incidents
   Future<void> loadIncidents() async {
-    final snapshot =
-        await FirebaseFirestore.instance.collection('incidents').get();
-
-    incidents =
-        snapshot.docs.map((doc) {
-          final data = doc.data();
-          return Incident(
-            incident: data['incident'] ?? '',
-            description: data['description'] ?? '',
-            location: data['location'] ?? '',
-            dateTime: data['dateTime'] ?? '',
-            latitude: (data['latitude'] ?? 0).toDouble(),
-            longitude: (data['longitude'] ?? 0).toDouble(),
-          );
-        }).toList();
+    try {
+      incidents = await _incidentService.getAllIncidents();
+    } catch (e) {
+      print('Error loading incidents in controller: $e');
+      incidents = [];
+    }
   }
 
-  // test data
-  /*List<Incident> testIncidents = [
-    Incident(
-      incident: "Fire",
-      description: "A fire broke out at the industrial area.",
-      location: "123 Industrial Road, Singapore",
-      dateTime: "2025-06-02 14:30",
-      latitude: 1.4090,
-      longitude: 103.7970,
-    ),
-    Incident(
-      incident: "Medical",
-      description: "Heavy rainfall caused flooding in several streets.",
-      location: "456 River Valley Road, Singapore",
-      dateTime: "2025-06-02 10:00",
-      latitude: 1.4390,
-      longitude: 103.7970,
-    ),
-    Incident(
-      incident: "Accident",
-      description: "Two vehicles collided at the junction.",
-      location: "789 Orchard Road, Singapore",
-      dateTime: "2025-06-01 18:15",
-      latitude: 1.4290,
-      longitude: 103.7970,
-    ),
-    Incident(
-      incident: "Violence",
-      description: "Power outage reported in multiple housing units.",
-      location: "101 Bukit Batok Street, Singapore",
-      dateTime: "2025-06-01 22:00",
-      latitude: 1.3900,
-      longitude: 103.7970,
-    ),
-  ];*/
+  // Load incidents for a specific date
+  Future<void> loadIncidentsForDate(DateTime date) async {
+    try {
+      incidents = await _incidentService.getIncidentsForDate(date);
+    } catch (e) {
+      print('Error loading incidents for date in controller: $e');
+      incidents = [];
+    }
+  }
+
+  // Get incidents by type
+  Future<List<Incident>> getIncidentsByType(String type) async {
+    try {
+      return await _incidentService.getIncidentsByType(type);
+    } catch (e) {
+      print('Error getting incidents by type in controller: $e');
+      return [];
+    }
+  }
+
+  // Get incidents by user
+  Future<List<Incident>> getIncidentsByUser(String userId) async {
+    try {
+      return await _incidentService.getIncidentsByUserId(userId);
+    } catch (e) {
+      print('Error getting incidents by user in controller: $e');
+      return [];
+    }
+  }
+
+  // Create new incident
+  Future<String?> createIncident(Incident incident) async {
+    try {
+      final incidentId = await _incidentService.createIncident(incident);
+      // Reload incidents to include the new one
+      await loadIncidents();
+      return incidentId;
+    } catch (e) {
+      print('Error creating incident in controller: $e');
+      return null;
+    }
+  }
+
+  // Update incident
+  Future<bool> updateIncident(String id, Map<String, dynamic> data) async {
+    try {
+      await _incidentService.updateIncident(id, data);
+      // Reload incidents to reflect changes
+      await loadIncidents();
+      return true;
+    } catch (e) {
+      print('Error updating incident in controller: $e');
+      return false;
+    }
+  }
+
+  // Delete incident
+  Future<bool> deleteIncident(String id) async {
+    try {
+      await _incidentService.deleteIncident(id);
+      // Remove from local list
+      incidents.removeWhere((incident) => incident.id == id);
+      return true;
+    } catch (e) {
+      print('Error deleting incident in controller: $e');
+      return false;
+    }
+  }
+
+  // Search incidents
+  Future<List<Incident>> searchIncidents(String query) async {
+    try {
+      return await _incidentService.searchIncidents(query);
+    } catch (e) {
+      print('Error searching incidents in controller: $e');
+      return [];
+    }
+  }
+
+  // Get incident statistics
+  Future<Map<String, int>> getIncidentStatistics() async {
+    try {
+      return await _incidentService.getIncidentStatistics();
+    } catch (e) {
+      print('Error getting incident statistics in controller: $e');
+      return {};
+    }
+  }
+
+  // Get recent incidents
+  Future<List<Incident>> getRecentIncidents() async {
+    try {
+      return await _incidentService.getRecentIncidents();
+    } catch (e) {
+      print('Error getting recent incidents in controller: $e');
+      return [];
+    }
+  }
+
+  // Get incidents in geographic area
+  Future<List<Incident>> getIncidentsInArea(
+    double minLat, 
+    double maxLat, 
+    double minLng, 
+    double maxLng
+  ) async {
+    try {
+      return await _incidentService.getIncidentsInArea(minLat, maxLat, minLng, maxLng);
+    } catch (e) {
+      print('Error getting incidents in area in controller: $e');
+      return [];
+    }
+  }
+
+  // Legacy method for backward compatibility - using legacy constructor
+  Future<void> loadIncidentsLegacy() async {
+    try {
+      final snapshot = await FirebaseFirestore.instance.collection('incidents').get();
+
+      incidents = snapshot.docs.map((doc) {
+        final data = doc.data();
+        return Incident.legacy(
+          incident: data['incident'] ?? '',
+          description: data['description'] ?? '',
+          location: data['location'] ?? '',
+          dateTime: data['dateTime'] ?? data['datetime'] ?? '',
+          latitude: (data['latitude'] ?? 0).toDouble(),
+          longitude: (data['longitude'] ?? 0).toDouble(),
+        );
+      }).toList();
+    } catch (e) {
+      print('Error loading legacy incidents: $e');
+      incidents = [];
+    }
+  }
 }
