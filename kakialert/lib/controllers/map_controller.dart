@@ -40,28 +40,73 @@ class MapController {
   }
 
   /* map markers fucnction */
+  // Future<Set<Marker>> loadIncidentMarkers({
+  //   required Function(Incident) onMarkerTap,
+  //   required DateTime selectedDate,
+  // }) async {
+  //   await incidentController.loadIncidents();
+  //   final allIncidents = incidentController.incidents;
+
+  //   // Filter incidents matching the selected date (only the date part)
+  //   final incidents =
+  //       allIncidents.where((incident) {
+  //         try {
+  //           final incidentDate = DateTime.parse(incident.dateTime);
+  //           return incidentDate.year == selectedDate.year &&
+  //               incidentDate.month == selectedDate.month &&
+  //               incidentDate.day == selectedDate.day;
+  //         } catch (e) {
+  //           return false;
+  //         }
+  //       }).toList();
+
+  //   Set<Marker> markers = {};
+
+  //   for (var i = 0; i < incidents.length; i++) {
+  //     final incident = incidents[i];
+
+  //     final assetPath = getAssetForIncident(incident.incident);
+  //     final icon = await getMarkerIconFromAsset(assetPath);
+
+  //     final marker = Marker(
+  //       markerId: MarkerId('incident_$i'),
+  //       position: incident.position,
+  //       icon: icon,
+  //       onTap: () => onMarkerTap(incident),
+  //     );
+
+  //     markers.add(marker);
+  //   }
+
+  //   return markers;
+  // }
   Future<Set<Marker>> loadIncidentMarkers({
     required Function(Incident) onMarkerTap,
-    required DateTime selectedDate, // Pass this into the function
+    required DateTime selectedDate,
   }) async {
+    // Load incidents from Firestore
     await incidentController.loadIncidents();
     final allIncidents = incidentController.incidents;
 
-    // Format selectedDate to "YYYY-MM-DD"
-    final selectedDateString = selectedDate.toIso8601String().substring(0, 10);
-
-    // Filter incidents that match the selected date
+    // Filter incidents that match the selected date (ignoring time)
     final incidents =
         allIncidents.where((incident) {
-          if (incident.dateTime.isEmpty) return false;
-          return incident.dateTime.startsWith(selectedDateString);
+          try {
+            final incidentDate = DateTime.parse(incident.dateTime);
+            return incidentDate.year == selectedDate.year &&
+                incidentDate.month == selectedDate.month &&
+                incidentDate.day == selectedDate.day;
+          } catch (e) {
+            // Skip invalid date strings
+            return false;
+          }
         }).toList();
 
+    // Convert filtered incidents to markers
     Set<Marker> markers = {};
 
     for (var i = 0; i < incidents.length; i++) {
       final incident = incidents[i];
-
       final assetPath = getAssetForIncident(incident.incident);
       final icon = await getMarkerIconFromAsset(assetPath);
 

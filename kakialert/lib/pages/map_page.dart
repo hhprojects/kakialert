@@ -87,12 +87,13 @@ class _MapPageState extends State<MapPage> {
                     firstDate: DateTime(2020),
                     lastDate: today,
                   );
-                  if (picked != null && picked != selectedDate) {
+
+                  if (picked != null) {
                     setState(() {
                       selectedDate = picked;
                     });
 
-                    // Reload incidents based on new date
+                    // Always reload incidents based on the picked date
                     await loadMarkers();
                   }
                 },
