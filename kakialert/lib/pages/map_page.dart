@@ -8,7 +8,9 @@ import 'package:kakialert/pages/forum_page.dart';
 import 'package:kakialert/utils/TColorTheme.dart';
 
 class MapPage extends StatefulWidget {
-  const MapPage({super.key});
+  final VoidCallback onNavigateToForum; //
+  //const MapPage({super.key});
+  const MapPage({Key? key, required this.onNavigateToForum}) : super(key: key);
 
   @override
   State<MapPage> createState() => _MapPageState();
@@ -64,43 +66,45 @@ class _MapPageState extends State<MapPage> {
         padding: EdgeInsets.only(top: MediaQuery.of(context).padding.top),
         color: TColorTheme.primaryRed,
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
           child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            mainAxisAlignment:
+                MainAxisAlignment.center, // Centered horizontally
             children: [
-              Text(
-                formattedDate,
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              IconButton(
-                icon: const Icon(Icons.calendar_today, color: Colors.white),
-                onPressed: () async {
-                  final DateTime today = DateTime.now();
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    formattedDate,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(width: 12), // spacing between text and icon
+                  IconButton(
+                    icon: const Icon(Icons.calendar_today, color: Colors.white),
+                    onPressed: () async {
+                      final DateTime today = DateTime.now();
 
-                  final DateTime? picked = await showDatePicker(
-                    context: context,
-                    initialDate: selectedDate,
-                    firstDate: DateTime(2020),
-                    lastDate: today,
-                  );
+                      final DateTime? picked = await showDatePicker(
+                        context: context,
+                        initialDate: selectedDate,
+                        firstDate: DateTime(2020),
+                        lastDate: today,
+                      );
 
-                  if (picked != null) {
-                    setState(() {
-                      selectedDate = picked;
-                    });
+                      if (picked != null) {
+                        setState(() {
+                          selectedDate = picked;
+                        });
 
-                    // Always reload incidents based on the picked date
-                    await loadMarkers();
-                  }
-                },
-              ),
-              IconButton(
-                icon: const Icon(Icons.filter_list, color: Colors.white),
-                onPressed: () async {},
+                        await loadMarkers();
+                      }
+                    },
+                  ),
+                ],
               ),
             ],
           ),
@@ -211,18 +215,30 @@ class _MapPageState extends State<MapPage> {
                 style: TextStyle(fontSize: 12, color: Colors.grey[700]),
               ),
               SizedBox(height: 12),
+              // GestureDetector(
+              //   onTap: () {
+              //     Navigator.push(
+              //       context,
+              //       MaterialPageRoute(builder: (context) => const ForumPage()),
+              //     );
+              //   },
+              //   child: Text(
+              //     'Navigate to forum',
+              //     style: TextStyle(
+              //       color: Colors.blue,
+
+              //       fontWeight: FontWeight.w500,
+              //     ),
+              //   ),
+              // ),
               GestureDetector(
                 onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (context) => const ForumPage()),
-                  );
+                  widget.onNavigateToForum();
                 },
                 child: Text(
                   'Navigate to forum',
                   style: TextStyle(
                     color: Colors.blue,
-
                     fontWeight: FontWeight.w500,
                   ),
                 ),

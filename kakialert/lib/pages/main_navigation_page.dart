@@ -23,9 +23,22 @@ class _MainNavigationPageState extends State<MainNavigationPage> {
   int _currentIndex = 0;
 
   // List of pages for bottom navigation
-  final List<Widget> _pages = [
+  // final List<Widget> _pages = [
+  //   const HomePage(),
+  //   const MapPage(),
+  //   const ForumPage(),
+  //   const ProfilePage(),
+  // ];
+
+  List<Widget> get _pages => [
     const HomePage(),
-    const MapPage(),
+    MapPage(
+      onNavigateToForum: () {
+        setState(() {
+          _currentIndex = 2; // Index of Forum tab
+        });
+      },
+    ),
     const ForumPage(),
     const ProfilePage(),
   ];
@@ -116,52 +129,120 @@ class _MainNavigationPageState extends State<MainNavigationPage> {
     );
   }
 
+  // @override
+  // Widget build(BuildContext context) {
+  //   return Scaffold(
+  //     backgroundColor: TColorTheme.lightGray,
+  //     appBar:
+  //         _currentIndex ==
+  //                 1 // index of MapPage
+  //             ? null
+  //             : AppBar(
+  //               title: Text(_pageTitles[_currentIndex]),
+  //               backgroundColor: TColorTheme.primaryRed,
+  //               foregroundColor: TColorTheme.white,
+  //               elevation: 0,
+  //               actions: [
+  //                 IconButton(
+  //                   onPressed: _isLoading ? null : _showLogoutDialog,
+  //                   icon:
+  //                       _isLoading
+  //                           ? SizedBox(
+  //                             width: 20,
+  //                             height: 20,
+  //                             child: CircularProgressIndicator(
+  //                               strokeWidth: 2,
+  //                               valueColor: AlwaysStoppedAnimation<Color>(
+  //                                 TColorTheme.white,
+  //                               ),
+  //                             ),
+  //                           )
+  //                           : const Icon(Icons.logout),
+  //                   tooltip: 'Logout',
+  //                 ),
+  //               ],
+  //             ),
+  //     body: IndexedStack(index: _currentIndex, children: _pages),
+  //     bottomNavigationBar: Container(
+  //       decoration: BoxDecoration(
+  //         color: TColorTheme.white,
+  //         boxShadow: [
+  //           BoxShadow(
+  //             color: Colors.black.withOpacity(0.1),
+  //             blurRadius: 10,
+  //             offset: const Offset(0, -2),
+  //           ),
+  //         ],
+  //       ),
+  //       child: BottomNavigationBar(
+  //         currentIndex: _currentIndex,
+  //         onTap: (index) {
+  //           setState(() {
+  //             _currentIndex = index;
+  //           });
+  //         },
+  //         type: BottomNavigationBarType.fixed,
+  //         backgroundColor: TColorTheme.white,
+  //         selectedItemColor: TColorTheme.primaryOrange,
+  //         unselectedItemColor: TColorTheme.gray,
+  //         selectedFontSize: 12,
+  //         unselectedFontSize: 12,
+  //         elevation: 0,
+  //         items: const [
+  //           BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
+  //           BottomNavigationBarItem(icon: Icon(Icons.map), label: 'Maps'),
+  //           BottomNavigationBarItem(icon: Icon(Icons.forum), label: 'Forum'),
+  //           BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Profile'),
+  //         ],
+  //       ),
+  //     ),
+  //   );
+  // }
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: TColorTheme.lightGray,
-      appBar:
-          _currentIndex ==
-                  1 // index of MapPage
-              ? null
-              : AppBar(
-                title: Text(_pageTitles[_currentIndex]),
-                backgroundColor: TColorTheme.primaryRed,
-                foregroundColor: TColorTheme.white,
-                elevation: 0,
-                actions: [
-                  IconButton(
-                    onPressed: _isLoading ? null : _showLogoutDialog,
-                    icon:
-                        _isLoading
-                            ? SizedBox(
-                              width: 20,
-                              height: 20,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                                valueColor: AlwaysStoppedAnimation<Color>(
-                                  TColorTheme.white,
+    return WillPopScope(
+      onWillPop: () async {
+        if (_currentIndex != 1) {
+          // 1 is MapPage index
+          setState(() {
+            _currentIndex = 1; // Switch back to Map tab
+          });
+          return false; // Prevent default back behavior
+        }
+        return true; // Allow default behavior (exit app)
+      },
+      child: Scaffold(
+        backgroundColor: TColorTheme.lightGray,
+        appBar:
+            _currentIndex == 1
+                ? null
+                : AppBar(
+                  title: Text(_pageTitles[_currentIndex]),
+                  backgroundColor: TColorTheme.primaryRed,
+                  foregroundColor: TColorTheme.white,
+                  elevation: 0,
+                  actions: [
+                    IconButton(
+                      onPressed: _isLoading ? null : _showLogoutDialog,
+                      icon:
+                          _isLoading
+                              ? SizedBox(
+                                width: 20,
+                                height: 20,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  valueColor: AlwaysStoppedAnimation<Color>(
+                                    TColorTheme.white,
+                                  ),
                                 ),
-                              ),
-                            )
-                            : const Icon(Icons.logout),
-                    tooltip: 'Logout',
-                  ),
-                ],
-              ),
-      body: IndexedStack(index: _currentIndex, children: _pages),
-      bottomNavigationBar: Container(
-        decoration: BoxDecoration(
-          color: TColorTheme.white,
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.1),
-              blurRadius: 10,
-              offset: const Offset(0, -2),
-            ),
-          ],
-        ),
-        child: BottomNavigationBar(
+                              )
+                              : const Icon(Icons.logout),
+                      tooltip: 'Logout',
+                    ),
+                  ],
+                ),
+        body: IndexedStack(index: _currentIndex, children: _pages),
+        bottomNavigationBar: BottomNavigationBar(
           currentIndex: _currentIndex,
           onTap: (index) {
             setState(() {
