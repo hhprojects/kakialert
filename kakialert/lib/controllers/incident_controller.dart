@@ -129,26 +129,4 @@ class IncidentController {
       return [];
     }
   }
-
-  // Legacy method for backward compatibility - using legacy constructor
-  Future<void> loadIncidentsLegacy() async {
-    try {
-      final snapshot = await FirebaseFirestore.instance.collection('incidents').get();
-
-      incidents = snapshot.docs.map((doc) {
-        final data = doc.data();
-        return Incident.legacy(
-          incident: data['incident'] ?? '',
-          description: data['description'] ?? '',
-          location: data['location'] ?? '',
-          dateTime: data['dateTime'] ?? data['datetime'] ?? '',
-          latitude: (data['latitude'] ?? 0).toDouble(),
-          longitude: (data['longitude'] ?? 0).toDouble(),
-        );
-      }).toList();
-    } catch (e) {
-      print('Error loading legacy incidents: $e');
-      incidents = [];
-    }
-  }
 }

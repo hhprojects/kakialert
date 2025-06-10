@@ -56,6 +56,9 @@ dependencies:
   cloudinary_url_gen: ^1.0.0
   cloudinary_api: ^1.0.0
 
+  # EXIF metadata extraction
+  native_exif: ^0.6.2
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

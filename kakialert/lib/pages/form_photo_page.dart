@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:image_picker/image_picker.dart';
 import 'form_detail_page.dart';
 import '../services/openrouter_service.dart';
+import '../services/image_metadata_service.dart';
 
 class FormPhotoPage extends StatefulWidget {
   const FormPhotoPage({super.key});
@@ -16,6 +17,7 @@ class _FormPhotoPageState extends State<FormPhotoPage> {
   final OpenRouterService _aiService = OpenRouterService();
   List<XFile> _selectedImages = [];
   bool _isAnalyzing = false;
+  List<Map<String, dynamic>> _imageValidationResults = [];
 
   @override
   void initState() {
@@ -30,6 +32,9 @@ class _FormPhotoPageState extends State<FormPhotoPage> {
         setState(() {
           _selectedImages.addAll(images);
         });
+        
+        // Validate each image's metadata
+        await _validateSelectedImages();
       }
     } catch (e) {
       _showErrorSnackBar('Error selecting images: $e');
@@ -44,6 +49,9 @@ class _FormPhotoPageState extends State<FormPhotoPage> {
         setState(() {
           _selectedImages.add(image);
         });
+        
+        // Validate the image's metadata
+        await _validateSelectedImages();
       }
     } catch (e) {
       _showErrorSnackBar('Error taking photo: $e');
@@ -65,6 +73,89 @@ class _FormPhotoPageState extends State<FormPhotoPage> {
     );
   }
 
+  Future<void> _validateSelectedImages() async {
+    List<Map<String, dynamic>> results = [];
+    
+    for (int i = 0; i < _selectedImages.length; i++) {
+      final image = _selectedImages[i];
+      final validationResult = await ImageMetadataService.getValidationResult(
+        image.path,
+        maxHoursAgo: 24, // Allow images taken within last 24 hours
+      );
+      
+      results.add({
+        'index': i,
+        'validation': validationResult,
+      });
+    }
+    
+    setState(() {
+      _imageValidationResults = results;
+    });
+    
+    // Show warnings for invalid images
+    _showValidationWarnings();
+  }
+
+  void _showValidationWarnings() {
+    final invalidImages = _imageValidationResults
+        .where((result) => !result['validation']['isValid'])
+        .toList();
+    
+    if (invalidImages.isNotEmpty) {
+      showDialog(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('Image Validation Warning'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text('Some images may not be recent:'),
+              const SizedBox(height: 8),
+              ...invalidImages.map((result) => Padding(
+                padding: const EdgeInsets.symmetric(vertical: 2),
+                child: Text(
+                  '• Image ${result['index'] + 1}: ${result['validation']['reason']}',
+                  style: const TextStyle(fontSize: 12),
+                ),
+              )),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Continue Anyway'),
+            ),
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+                _removeInvalidImages();
+              },
+              child: const Text('Remove Invalid Images'),
+            ),
+          ],
+        ),
+      );
+    }
+  }
+
+  void _removeInvalidImages() {
+    final invalidIndices = _imageValidationResults
+        .where((result) => !result['validation']['isValid'])
+        .map((result) => result['index'] as int)
+        .toList()
+        ..sort((a, b) => b.compareTo(a)); // Sort in descending order
+    
+    setState(() {
+      for (final index in invalidIndices) {
+        _selectedImages.removeAt(index);
+      }
+    });
+    
+    // Re-validate remaining images
+    _validateSelectedImages();
+  }
+
   Widget _buildImagePreview() {
     if (_selectedImages.isEmpty) {
       return Container();
@@ -84,12 +175,15 @@ class _FormPhotoPageState extends State<FormPhotoPage> {
         ),
         const SizedBox(height: 8),
         SizedBox(
-          height: 100,
+          height: 120,
           child: ListView.builder(
             scrollDirection: Axis.horizontal,
             itemCount: _selectedImages.length,
             itemBuilder: (context, index) {
               final image = _selectedImages[index];
+              final validation = _imageValidationResults
+                  .where((result) => result['index'] == index)
+                  .firstOrNull?['validation'];
               
               return Container(
                 margin: const EdgeInsets.only(right: 8),
@@ -104,6 +198,29 @@ class _FormPhotoPageState extends State<FormPhotoPage> {
                         fit: BoxFit.cover,
                       ),
                     ),
+                    // Validation indicator
+                    if (validation != null)
+                      Positioned(
+                        top: 4,
+                        left: 4,
+                        child: Container(
+                          padding: const EdgeInsets.all(2),
+                          decoration: BoxDecoration(
+                            color: validation['isValid'] 
+                                ? Colors.green 
+                                : Colors.orange,
+                            shape: BoxShape.circle,
+                          ),
+                          child: Icon(
+                            validation['isValid'] 
+                                ? Icons.check 
+                                : Icons.warning,
+                            color: Colors.white,
+                            size: 12,
+                          ),
+                        ),
+                      ),
+                    // Remove button
                     Positioned(
                       top: 4,
                       right: 4,
@@ -128,8 +245,35 @@ class _FormPhotoPageState extends State<FormPhotoPage> {
             },
           ),
         ),
+        // Validation summary
+        if (_imageValidationResults.isNotEmpty)
+          Padding(
+            padding: const EdgeInsets.only(top: 8),
+            child: Text(
+              _getValidationSummary(),
+              style: TextStyle(
+                fontSize: 12,
+                color: _hasInvalidImages() ? Colors.orange[700] : Colors.green[700],
+              ),
+            ),
+          ),
       ],
     );
+  }
+
+  String _getValidationSummary() {
+    final total = _imageValidationResults.length;
+    final valid = _imageValidationResults.where((r) => r['validation']['isValid']).length;
+    
+    if (valid == total) {
+      return '✓ All images have valid timestamps';
+    } else {
+      return '⚠ ${total - valid} of $total images may be outdated';
+    }
+  }
+
+  bool _hasInvalidImages() {
+    return _imageValidationResults.any((result) => !result['validation']['isValid']);
   }
 
   Future<void> _navigateToDetailPage() async {

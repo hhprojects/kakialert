@@ -4,7 +4,6 @@ import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:kakialert/controllers/incident_controller.dart';
 import 'package:kakialert/controllers/map_controller.dart';
 import 'package:kakialert/models/incident_model.dart';
-import 'package:kakialert/pages/forum_page.dart';
 import 'package:kakialert/utils/TColorTheme.dart';
 
 class MapPage extends StatefulWidget {
@@ -211,7 +210,7 @@ class _MapPageState extends State<MapPage> {
               ),
               SizedBox(height: 8),
               Text(
-                selectedIncident?.dateTime ?? 'No time',
+                selectedIncident?.datetime?.toString() ?? 'No time',
                 style: TextStyle(fontSize: 12, color: Colors.grey[700]),
               ),
               SizedBox(height: 12),

@@ -16,6 +16,8 @@ class Incident {
   final String displayName; // User's display name
   final DateTime? datetime; // When the incident occurred
   final DateTime? createdAt; // When the report was created
+  final Map<String, dynamic>? imageMetadata; // Store metadata
+  final bool? metadataValidated; // Whether metadata was validated
 
   Incident({
     this.id,
@@ -32,34 +34,16 @@ class Incident {
     required this.displayName,
     this.datetime,
     this.createdAt,
+    this.imageMetadata,
+    this.metadataValidated,
   });
-
-  // Legacy constructor for backward compatibility
-  Incident.legacy({
-    required this.incident,
-    required this.description,
-    required this.location,
-    String? image,
-    required String dateTime,
-    required this.latitude,
-    required this.longitude,
-  }) : 
-    id = null,
-    title = description, // Use description as title for legacy data
-    imageUrls = image != null ? [image] : [],
-    imagePublicIds = [],
-    userId = '',
-    userEmail = '',
-    displayName = 'Anonymous',
-    datetime = DateTime.tryParse(dateTime),
-    createdAt = DateTime.tryParse(dateTime);
 
   // Factory constructor to create Incident from Firestore document
   factory Incident.fromFirestore(DocumentSnapshot doc) {
     final data = doc.data() as Map<String, dynamic>;
     return Incident(
       id: doc.id,
-      title: data['title'] ?? data['description'] ?? 'Untitled Incident',
+      title: data['title'] ?? 'Untitled Incident',
       incident: data['incident'] ?? 'others',
       description: data['description'] ?? '',
       location: data['location'] ?? '',
@@ -78,6 +62,10 @@ class Incident {
       createdAt: data['createdAt'] != null 
           ? (data['createdAt'] as Timestamp).toDate()
           : null,
+      imageMetadata: data['imageMetadata'] != null 
+          ? Map<String, dynamic>.from(data['imageMetadata']) 
+          : null,
+      metadataValidated: data['metadataValidated'],
     );
   }
 
@@ -85,7 +73,7 @@ class Incident {
   factory Incident.fromMap(Map<String, dynamic> data, {String? documentId}) {
     return Incident(
       id: documentId ?? data['id'],
-      title: data['title'] ?? data['description'] ?? 'Untitled Incident',
+      title: data['title'] ?? 'Untitled Incident',
       incident: data['incident'] ?? 'others',
       description: data['description'] ?? '',
       location: data['location'] ?? '',
@@ -106,6 +94,10 @@ class Incident {
               ? (data['createdAt'] as Timestamp).toDate()
               : DateTime.tryParse(data['createdAt'].toString()))
           : null,
+      imageMetadata: data['imageMetadata'] != null 
+          ? Map<String, dynamic>.from(data['imageMetadata']) 
+          : null,
+      metadataValidated: data['metadataValidated'],
     );
   }
 
@@ -127,6 +119,8 @@ class Incident {
       'createdAt': createdAt != null 
           ? Timestamp.fromDate(createdAt!) 
           : FieldValue.serverTimestamp(),
+      'imageMetadata': imageMetadata,
+      'metadataValidated': metadataValidated,
     };
   }
 
@@ -146,6 +140,8 @@ class Incident {
       'displayName': displayName,
       'datetime': datetime?.toIso8601String() ?? DateTime.now().toIso8601String(),
       'createdAt': FieldValue.serverTimestamp(),
+      'imageMetadata': imageMetadata,
+      'metadataValidated': metadataValidated,
     };
   }
 
@@ -154,12 +150,6 @@ class Incident {
 
   // Get LatLng position for Google Maps
   LatLng get position => LatLng(latitude, longitude);
-
-  // Get formatted date string for legacy compatibility
-  String get dateTime => datetime?.toIso8601String() ?? createdAt?.toIso8601String() ?? '';
-
-  // Legacy image property for backward compatibility
-  String? get image => imageUrls.isNotEmpty ? imageUrls.first : null;
 
   // Copy with method for updating incident data
   Incident copyWith({
@@ -177,6 +167,8 @@ class Incident {
     String? displayName,
     DateTime? datetime,
     DateTime? createdAt,
+    Map<String, dynamic>? imageMetadata,
+    bool? metadataValidated,
   }) {
     return Incident(
       id: id ?? this.id,
@@ -193,6 +185,8 @@ class Incident {
       displayName: displayName ?? this.displayName,
       datetime: datetime ?? this.datetime,
       createdAt: createdAt ?? this.createdAt,
+      imageMetadata: imageMetadata ?? this.imageMetadata,
+      metadataValidated: metadataValidated ?? this.metadataValidated,
     );
   }
 

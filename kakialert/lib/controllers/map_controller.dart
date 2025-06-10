@@ -92,7 +92,7 @@ class MapController {
     final incidents =
         allIncidents.where((incident) {
           try {
-            final incidentDate = DateTime.parse(incident.dateTime);
+            final incidentDate = DateTime.parse(incident.datetime.toString());
             return incidentDate.year == selectedDate.year &&
                 incidentDate.month == selectedDate.month &&
                 incidentDate.day == selectedDate.day;
