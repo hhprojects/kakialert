@@ -50,7 +50,9 @@ class _DiscussionPageState extends State<DiscussionPage> {
 
   Future<void> _loadMessages() async {
     try {
-      setState(() => _isLoading = true);
+      if (mounted) {
+        setState(() => _isLoading = true);
+      }
       
       final messages = await _discussionService.getTopLevelMessages(widget.incident.id!);
       
@@ -63,13 +65,17 @@ class _DiscussionPageState extends State<DiscussionPage> {
         }
       }
       
-      setState(() {
-        _messages = messages;
-        _replies = replies;
-        _isLoading = false;
-      });
+      if (mounted) {
+        setState(() {
+          _messages = messages;
+          _replies = replies;
+          _isLoading = false;
+        });
+      }
     } catch (e) {
-      setState(() => _isLoading = false);
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
       _showErrorSnackBar('Failed to load messages: $e');
     }
   }
@@ -78,7 +84,9 @@ class _DiscussionPageState extends State<DiscussionPage> {
     if (_messageController.text.trim().isEmpty || _currentUser == null) return;
 
     try {
-      setState(() => _isSending = true);
+      if (mounted) {
+        setState(() => _isSending = true);
+      }
 
       final userData = await _authService.getUserData();
       final displayName = userData?['displayName'] ?? _currentUser!.email ?? 'Anonymous';
@@ -100,7 +108,7 @@ class _DiscussionPageState extends State<DiscussionPage> {
       
       // Scroll to bottom to show new message
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (_scrollController.hasClients) {
+        if (_scrollController.hasClients && mounted) {
           _scrollController.animateTo(
             _scrollController.position.maxScrollExtent,
             duration: const Duration(milliseconds: 300),
@@ -112,31 +120,39 @@ class _DiscussionPageState extends State<DiscussionPage> {
     } catch (e) {
       _showErrorSnackBar('Failed to send message: $e');
     } finally {
-      setState(() => _isSending = false);
+      if (mounted) {
+        setState(() => _isSending = false);
+      }
     }
   }
 
   void _replyToMessage(DiscussionMessage message) {
-    setState(() {
-      _replyingToId = message.id;
-      _replyingToUser = message.senderName;
-    });
+    if (mounted) {
+      setState(() {
+        _replyingToId = message.id;
+        _replyingToUser = message.senderName;
+      });
+    }
     
     // Focus on the text field
     FocusScope.of(context).requestFocus(FocusNode());
   }
 
   void _clearReply() {
-    setState(() {
-      _replyingToId = null;
-      _replyingToUser = null;
-    });
+    if (mounted) {
+      setState(() {
+        _replyingToId = null;
+        _replyingToUser = null;
+      });
+    }
   }
 
   void _toggleReplies(String messageId) {
-    setState(() {
-      _expandedReplies[messageId] = !(_expandedReplies[messageId] ?? false);
-    });
+    if (mounted) {
+      setState(() {
+        _expandedReplies[messageId] = !(_expandedReplies[messageId] ?? false);
+      });
+    }
   }
 
   Future<void> _toggleLike(DiscussionMessage message) async {

@@ -25,22 +25,28 @@ class _ForumPageState extends State<ForumPage> {
 
   Future<void> _loadIncidents() async {
     try {
-      setState(() {
-        _isLoading = true;
-        _error = '';
-      });
+      if (mounted) {
+        setState(() {
+          _isLoading = true;
+          _error = '';
+        });
+      }
 
       final incidents = await _incidentService.getAllIncidents();
 
-      setState(() {
-        _incidents = incidents;
-        _isLoading = false;
-      });
+      if (mounted) {
+        setState(() {
+          _incidents = incidents;
+          _isLoading = false;
+        });
+      }
     } catch (e) {
-      setState(() {
-        _error = 'Failed to load incidents: ${e.toString()}';
-        _isLoading = false;
-      });
+      if (mounted) {
+        setState(() {
+          _error = 'Failed to load incidents: ${e.toString()}';
+          _isLoading = false;
+        });
+      }
     }
   }
 
