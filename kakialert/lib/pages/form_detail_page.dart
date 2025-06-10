@@ -6,6 +6,7 @@ import '../controllers/incident_controller.dart';
 import '../services/cloudinary_service.dart';
 import '../services/auth_service.dart';
 import '../services/incident_service.dart';
+import '../services/incident_clustering_service.dart';
 import '../models/incident_model.dart';
 import 'package:geocoding/geocoding.dart';
 
@@ -416,12 +417,12 @@ class _FormDetailPageState extends State<FormDetailPage> {
     );
   }
 
-  Future<void> _handleSubmit() async {
+  Future<void> _submitIncident() async {
     // Validate that subject is selected
     if (_selectedSubject == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Please select a subject category'),
+          content: Text('Please select an incident category'),
           backgroundColor: Colors.red,
         ),
       );
@@ -503,16 +504,28 @@ class _FormDetailPageState extends State<FormDetailPage> {
         datetime: DateTime.now(),
       );
 
-      // 5. Save to Firebase Firestore using IncidentService
-      await _incidentService.createIncident(incident);
+      // 5. Check for clustering and automatically cluster if similar incident found
+      final clusteringService = IncidentClusteringService();
+      final clusterId = await clusteringService.findClusterForIncident(incident);
+      
+      String successMessage;
+      if (clusterId != null) {
+        // Automatically cluster the incident
+        await clusteringService.processIncidentClustering(incident, clusterId);
+        successMessage = 'Incident added to existing report. Thank you for verification! This helps improve incident reliability.';
+      } else {
+        // No cluster found, create new incident
+        await _incidentService.createIncident(incident);
+        successMessage = 'Incident submitted successfully!';
+      }
 
       // 6. Show success message
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Incident submitted successfully!'),
-            backgroundColor: Colors.green,
-            duration: Duration(seconds: 3),
+          SnackBar(
+            content: Text(successMessage),
+            backgroundColor: clusterId != null ? Colors.blue : Colors.green,
+            duration: Duration(seconds: 4),
           ),
         );
 
@@ -733,7 +746,7 @@ class _FormDetailPageState extends State<FormDetailPage> {
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
-                onPressed: _isSubmitting ? null : _handleSubmit,
+                onPressed: _isSubmitting ? null : _submitIncident,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFFFF6B6B), // Red color like in the image
                   padding: const EdgeInsets.symmetric(vertical: 16),

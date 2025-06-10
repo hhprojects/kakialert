@@ -18,6 +18,12 @@ class Incident {
   final DateTime? createdAt; // When the report was created
   final Map<String, dynamic>? imageMetadata; // Store metadata
   final bool? metadataValidated; // Whether metadata was validated
+  final String? clusterId; // ID of the cluster this incident belongs to
+  final int? clusterSize; // Number of incidents in this cluster (only for master)
+  final int? verificationCount; // Number of additional reports (cluster size - 1)
+  final List<String> contributorIds; // User IDs who reported this incident
+  final List<String> aggregatedImageUrls; // All images from clustered incidents
+  final DateTime? lastUpdated; // When cluster was last updated
 
   Incident({
     this.id,
@@ -36,6 +42,12 @@ class Incident {
     this.createdAt,
     this.imageMetadata,
     this.metadataValidated,
+    this.clusterId,
+    this.clusterSize,
+    this.verificationCount,
+    this.contributorIds = const [],
+    this.aggregatedImageUrls = const [],
+    this.lastUpdated,
   });
 
   // Factory constructor to create Incident from Firestore document
@@ -66,6 +78,16 @@ class Incident {
           ? Map<String, dynamic>.from(data['imageMetadata']) 
           : null,
       metadataValidated: data['metadataValidated'],
+      clusterId: data['clusterId'],
+      clusterSize: data['clusterSize'],
+      verificationCount: data['verificationCount'],
+      contributorIds: List<String>.from(data['contributorIds'] ?? []),
+      aggregatedImageUrls: List<String>.from(data['aggregatedImageUrls'] ?? []),
+      lastUpdated: data['lastUpdated'] != null 
+          ? (data['lastUpdated'] is Timestamp 
+              ? (data['lastUpdated'] as Timestamp).toDate()
+              : DateTime.tryParse(data['lastUpdated']))
+          : null,
     );
   }
 
@@ -98,6 +120,16 @@ class Incident {
           ? Map<String, dynamic>.from(data['imageMetadata']) 
           : null,
       metadataValidated: data['metadataValidated'],
+      clusterId: data['clusterId'],
+      clusterSize: data['clusterSize'],
+      verificationCount: data['verificationCount'],
+      contributorIds: List<String>.from(data['contributorIds'] ?? []),
+      aggregatedImageUrls: List<String>.from(data['aggregatedImageUrls'] ?? []),
+      lastUpdated: data['lastUpdated'] != null 
+          ? (data['lastUpdated'] is Timestamp 
+              ? (data['lastUpdated'] as Timestamp).toDate()
+              : DateTime.tryParse(data['lastUpdated'].toString()))
+          : null,
     );
   }
 
@@ -121,6 +153,12 @@ class Incident {
           : FieldValue.serverTimestamp(),
       'imageMetadata': imageMetadata,
       'metadataValidated': metadataValidated,
+      'clusterId': clusterId,
+      'clusterSize': clusterSize,
+      'verificationCount': verificationCount,
+      'contributorIds': contributorIds,
+      'aggregatedImageUrls': aggregatedImageUrls,
+      'lastUpdated': lastUpdated?.toIso8601String(),
     };
   }
 
@@ -142,6 +180,12 @@ class Incident {
       'createdAt': FieldValue.serverTimestamp(),
       'imageMetadata': imageMetadata,
       'metadataValidated': metadataValidated,
+      'clusterId': clusterId,
+      'clusterSize': clusterSize,
+      'verificationCount': verificationCount,
+      'contributorIds': contributorIds,
+      'aggregatedImageUrls': aggregatedImageUrls,
+      'lastUpdated': lastUpdated?.toIso8601String(),
     };
   }
 
@@ -169,6 +213,12 @@ class Incident {
     DateTime? createdAt,
     Map<String, dynamic>? imageMetadata,
     bool? metadataValidated,
+    String? clusterId,
+    int? clusterSize,
+    int? verificationCount,
+    List<String>? contributorIds,
+    List<String>? aggregatedImageUrls,
+    DateTime? lastUpdated,
   }) {
     return Incident(
       id: id ?? this.id,
@@ -187,6 +237,12 @@ class Incident {
       createdAt: createdAt ?? this.createdAt,
       imageMetadata: imageMetadata ?? this.imageMetadata,
       metadataValidated: metadataValidated ?? this.metadataValidated,
+      clusterId: clusterId ?? this.clusterId,
+      clusterSize: clusterSize ?? this.clusterSize,
+      verificationCount: verificationCount ?? this.verificationCount,
+      contributorIds: contributorIds ?? this.contributorIds,
+      aggregatedImageUrls: aggregatedImageUrls ?? this.aggregatedImageUrls,
+      lastUpdated: lastUpdated ?? this.lastUpdated,
     );
   }
 
@@ -203,4 +259,9 @@ class Incident {
 
   @override
   int get hashCode => id.hashCode;
+
+  // Helper methods
+  bool get isClusterMaster => clusterId == null || clusterId == id;
+  bool get isInCluster => clusterId != null;
+  int get totalReports => (verificationCount ?? 0) + 1;
 }

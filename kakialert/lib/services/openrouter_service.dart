@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:http/http.dart' as http;
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import '../models/incident_model.dart';
 
 class OpenRouterService {
   static const String _baseUrl = 'https://openrouter.ai/api/v1';
@@ -382,38 +383,318 @@ Analyze the images now and create your social media-style report.''',
         }
       }
 
-      // Extract TITLE and clean formatting
+      // Extract TITLE
       final titleMatch = RegExp(r'TITLE:\s*(.+?)(?:\n|$)', multiLine: true).firstMatch(analysisText);
       if (titleMatch != null) {
-        String title = titleMatch.group(1)?.trim() ?? '';
-        // Remove asterisks, quotes, and other formatting characters
-        title = title.replaceAll('*', '').replaceAll('"', '').replaceAll("'", '').replaceAll('`', '').trim();
-        result['title'] = title;
+        result['title'] = titleMatch.group(1)?.trim() ?? '';
       }
 
-      // Extract DESCRIPTION and clean formatting
-      final descriptionMatch = RegExp(r'DESCRIPTION:\s*(.+?)(?:\n\n|$)', multiLine: true, dotAll: true).firstMatch(analysisText);
+      // Extract DESCRIPTION
+      final descriptionMatch = RegExp(r'DESCRIPTION:\s*(.+?)(?:\n|$)', multiLine: true).firstMatch(analysisText);
       if (descriptionMatch != null) {
-        String description = descriptionMatch.group(1)?.trim() ?? '';
-        // Remove asterisks, markdown formatting, and extra whitespace
-        description = description
-            .replaceAll('*', '') // Remove asterisks
-            .replaceAll('_', '') // Remove underscores
-            .replaceAll('`', '') // Remove backticks
-            .replaceAll(RegExp(r'\s+'), ' ') // Replace multiple spaces with single space
-            .trim();
-        result['description'] = description;
+        result['description'] = descriptionMatch.group(1)?.trim() ?? '';
       }
 
-      return result;
     } catch (e) {
       print('Error parsing analysis response: $e');
-      // Return partial results or defaults
-      return {
-        'subject': 'others',
-        'title': 'Something happening here',
-        'description': 'Check out what I just saw! Anyone know more details?',
-      };
     }
+
+    return result;
+  }
+
+  // Validate if images actually show an incident
+  Future<Map<String, dynamic>> validateIncidentImages({
+    required List<String> imagePaths,
+    String model = 'openai/gpt-4o-mini',
+  }) async {
+    try {
+      if (imagePaths.isEmpty) {
+        throw Exception('No images provided for validation');
+      }
+
+      // Convert images to base64
+      List<Map<String, dynamic>> imageContent = [];
+      
+      for (String imagePath in imagePaths) {
+        final bytes = await File(imagePath).readAsBytes();
+        final base64Image = base64Encode(bytes);
+        imageContent.add({
+          'type': 'image_url',
+          'image_url': {
+            'url': 'data:image/jpeg;base64,$base64Image',
+          },
+        });
+      }
+
+      // Build validation prompt
+      List<Map<String, dynamic>> content = [
+        {
+          'type': 'text',
+          'text': '''You are an AI content moderator for an emergency incident reporting system. Your job is to determine if the submitted images show genuine incidents that warrant emergency response or community awareness.
+
+TASK: Analyze the provided images and determine if they show a legitimate incident.
+
+LEGITIMATE INCIDENTS include:
+- Medical emergencies (injuries, accidents, health crises)
+- Fires or smoke (building fires, vehicle fires, hazardous smoke)
+- Traffic accidents (vehicle collisions, road incidents)
+- Violence or crime (fights, vandalism, suspicious activity)
+- Rescue situations (people trapped, emergency evacuations)
+- Infrastructure issues (flooding, building damage, power outages)
+- Public safety concerns (dangerous conditions, hazards)
+- MRT/transport disruptions (train breakdowns, platform incidents)
+
+NON-INCIDENTS include:
+- Everyday photos (selfies, food, landscapes, buildings)
+- Social media content (memes, screenshots, random photos)
+- Normal activities (people walking, traffic, construction)
+- Weather photos (unless showing dangerous conditions)
+- Test images or inappropriate content
+- Old news screenshots or downloaded images
+- Promotional or advertising content
+
+ANALYSIS CRITERIA:
+1. Does the image show clear signs of an emergency, danger, or unusual situation?
+2. Would this require immediate attention from authorities or community awareness?
+3. Is there visible evidence of damage, injury, hazard, or disruption?
+4. Are there emergency vehicles, responders, or concerned people present?
+
+Respond with this exact format:
+
+VALIDATION: [VALID/INVALID]
+CONFIDENCE: [High/Medium/Low]
+REASON: [Brief explanation of why this is/isn't a legitimate incident]
+DETECTED_ELEMENTS: [List key elements you see that support your decision]
+RECOMMENDATIONS: [If invalid, suggest what type of content this appears to be]
+
+Be strict but fair. If in doubt and the image could reasonably be an incident, err on the side of VALID.'''
+        },
+        ...imageContent,
+      ];
+
+      final requestBody = {
+        'model': model,
+        'messages': [
+          {
+            'role': 'user',
+            'content': content,
+          }
+        ],
+        'max_tokens': 500,
+        'temperature': 0.3, // Lower temperature for more consistent validation
+      };
+
+      final response = await http.post(
+        Uri.parse('$_baseUrl/chat/completions'),
+        headers: {
+          'Authorization': 'Bearer $_apiKey',
+          'Content-Type': 'application/json',
+        },
+        body: json.encode(requestBody),
+      );
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        final validationText = data['choices'][0]['message']['content'];
+        
+        // Parse the validation response
+        return _parseValidationResponse(validationText);
+      } else {
+        final errorData = json.decode(response.body);
+        throw Exception('API Error: ${errorData['error']['message']}');
+      }
+    } catch (e) {
+      throw Exception('Error validating incident images: $e');
+    }
+  }
+
+  // Parse the AI validation response
+  Map<String, dynamic> _parseValidationResponse(String validationText) {
+    Map<String, dynamic> result = {
+      'isValid': false,
+      'confidence': 'Low',
+      'reason': 'Failed to parse AI response',
+      'detectedElements': <String>[],
+      'recommendations': '',
+      'rawResponse': validationText,
+    };
+
+    try {
+      // Extract VALIDATION
+      final validationMatch = RegExp(r'VALIDATION:\s*(VALID|INVALID)', multiLine: true, caseSensitive: false)
+          .firstMatch(validationText);
+      if (validationMatch != null) {
+        result['isValid'] = validationMatch.group(1)?.toUpperCase() == 'VALID';
+      }
+
+      // Extract CONFIDENCE
+      final confidenceMatch = RegExp(r'CONFIDENCE:\s*(High|Medium|Low)', multiLine: true, caseSensitive: false)
+          .firstMatch(validationText);
+      if (confidenceMatch != null) {
+        result['confidence'] = confidenceMatch.group(1) ?? 'Low';
+      }
+
+      // Extract REASON
+      final reasonMatch = RegExp(r'REASON:\s*(.+?)(?=\n[A-Z]+:|$)', multiLine: true, dotAll: true)
+          .firstMatch(validationText);
+      if (reasonMatch != null) {
+        result['reason'] = reasonMatch.group(1)?.trim() ?? 'No reason provided';
+      }
+
+      // Extract DETECTED_ELEMENTS
+      final elementsMatch = RegExp(r'DETECTED_ELEMENTS:\s*(.+?)(?=\n[A-Z]+:|$)', multiLine: true, dotAll: true)
+          .firstMatch(validationText);
+      if (elementsMatch != null) {
+        final elementsText = elementsMatch.group(1)?.trim() ?? '';
+        result['detectedElements'] = elementsText
+            .split(',')
+            .map((e) => e.trim())
+            .where((e) => e.isNotEmpty)
+            .toList();
+      }
+
+      // Extract RECOMMENDATIONS
+      final recommendationsMatch = RegExp(r'RECOMMENDATIONS:\s*(.+?)(?=\n[A-Z]+:|$)', multiLine: true, dotAll: true)
+          .firstMatch(validationText);
+      if (recommendationsMatch != null) {
+        result['recommendations'] = recommendationsMatch.group(1)?.trim() ?? '';
+      }
+
+    } catch (e) {
+      print('Error parsing validation response: $e');
+    }
+
+    return result;
+  }
+
+  /// Compare similarity between two incidents
+  Future<Map<String, dynamic>> compareIncidentSimilarity({
+    required Incident incident1,
+    required Incident incident2,
+  }) async {
+    try {
+      // Prepare content for comparison
+      List<Map<String, dynamic>> content = [
+        {
+          'type': 'text',
+          'text': '''Compare these two incident reports and determine if they are describing the same event:
+
+INCIDENT 1:
+Type: ${incident1.incident}
+Location: ${incident1.location}
+Description: ${incident1.description}
+Time: ${incident1.datetime?.toIso8601String() ?? 'Unknown'}
+
+INCIDENT 2:
+Type: ${incident2.incident}
+Location: ${incident2.location}
+Description: ${incident2.description}
+Time: ${incident2.datetime?.toIso8601String() ?? 'Unknown'}
+
+Analyze these factors:
+1. Are they describing the same type of incident?
+2. Are the locations similar or the same?
+3. Are the descriptions talking about the same event?
+4. Are the timestamps close enough to be the same incident?
+5. Do any unique identifiers match (vehicle plates, building names, etc.)?
+
+Respond with this exact format:
+SIMILARITY: [0.0 to 1.0 - how similar they are]
+SAME_INCIDENT: [YES/NO - are they the same incident?]
+CONFIDENCE: [High/Medium/Low]
+REASONING: [Brief explanation of why they are/aren't the same]
+KEY_FACTORS: [List the main factors that influenced your decision]'''
+        }
+      ];
+
+      final requestBody = {
+        'model': 'openai/gpt-4o-mini',
+        'messages': [
+          {
+            'role': 'user',
+            'content': content,
+          }
+        ],
+        'max_tokens': 400,
+        'temperature': 0.1, // Very low temperature for consistent analysis
+      };
+
+      final response = await http.post(
+        Uri.parse('$_baseUrl/chat/completions'),
+        headers: {
+          'Authorization': 'Bearer $_apiKey',
+          'Content-Type': 'application/json',
+        },
+        body: json.encode(requestBody),
+      );
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        final analysisText = data['choices'][0]['message']['content'];
+        
+        return _parseSimilarityResponse(analysisText);
+      } else {
+        throw Exception('API Error: ${response.statusCode}');
+      }
+    } catch (e) {
+      throw Exception('Error comparing incident similarity: $e');
+    }
+  }
+
+  /// Parse the AI similarity response
+  Map<String, dynamic> _parseSimilarityResponse(String analysisText) {
+    Map<String, dynamic> result = {
+      'similarity': 0.0,
+      'sameIncident': false,
+      'confidence': 'Low',
+      'reasoning': 'Failed to parse response',
+      'keyFactors': <String>[],
+    };
+
+    try {
+      // Extract similarity score
+      final similarityMatch = RegExp(r'SIMILARITY:\s*([0-9.]+)').firstMatch(analysisText);
+      if (similarityMatch != null) {
+        result['similarity'] = double.tryParse(similarityMatch.group(1) ?? '0') ?? 0.0;
+      }
+
+      // Extract same incident determination
+      final sameIncidentMatch = RegExp(r'SAME_INCIDENT:\s*(YES|NO)', caseSensitive: false)
+          .firstMatch(analysisText);
+      if (sameIncidentMatch != null) {
+        result['sameIncident'] = sameIncidentMatch.group(1)?.toUpperCase() == 'YES';
+      }
+
+      // Extract confidence
+      final confidenceMatch = RegExp(r'CONFIDENCE:\s*(High|Medium|Low)', caseSensitive: false)
+          .firstMatch(analysisText);
+      if (confidenceMatch != null) {
+        result['confidence'] = confidenceMatch.group(1) ?? 'Low';
+      }
+
+      // Extract reasoning
+      final reasoningMatch = RegExp(r'REASONING:\s*(.+?)(?=\nKEY_FACTORS:|$)', dotAll: true)
+          .firstMatch(analysisText);
+      if (reasoningMatch != null) {
+        result['reasoning'] = reasoningMatch.group(1)?.trim() ?? '';
+      }
+
+      // Extract key factors
+      final factorsMatch = RegExp(r'KEY_FACTORS:\s*(.+?)$', dotAll: true)
+          .firstMatch(analysisText);
+      if (factorsMatch != null) {
+        final factorsText = factorsMatch.group(1)?.trim() ?? '';
+        result['keyFactors'] = factorsText
+            .split('\n')
+            .map((line) => line.replaceAll(RegExp(r'^[•\-*]\s*'), '').trim())
+            .where((line) => line.isNotEmpty)
+            .toList();
+      }
+
+    } catch (e) {
+      print('Error parsing similarity response: $e');
+    }
+
+    return result;
   }
 }

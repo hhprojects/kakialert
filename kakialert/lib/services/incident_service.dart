@@ -59,7 +59,7 @@ class IncidentService {
       return snapshot.docs.map((doc) => Incident.fromFirestore(doc)).toList();
     } catch (e) {
       print('Error getting incidents by user ID: $e');
-      throw Exception('Failed to get user incidents: $e');
+      throw Exception('Failed to get incidents by user: $e');
     }
   }
 
@@ -139,11 +139,26 @@ class IncidentService {
     }
   }
 
+  // Get incidents by cluster ID
+  Future<List<Incident>> getIncidentsByCluster(String clusterId) async {
+    try {
+      final snapshot = await _incidentsCollection
+          .where('clusterId', isEqualTo: clusterId)
+          .orderBy('createdAt', descending: false) // Oldest first for master
+          .get();
+      
+      return snapshot.docs.map((doc) => Incident.fromFirestore(doc)).toList();
+    } catch (e) {
+      print('Error getting incidents by cluster: $e');
+      throw Exception('Failed to get incidents by cluster: $e');
+    }
+  }
+
   // Update incident
   Future<void> updateIncident(String id, Map<String, dynamic> data) async {
     try {
       await _incidentsCollection.doc(id).update(data);
-      print('Incident updated successfully: $id');
+      print('Incident updated successfully');
     } catch (e) {
       print('Error updating incident: $e');
       throw Exception('Failed to update incident: $e');
@@ -154,7 +169,7 @@ class IncidentService {
   Future<void> deleteIncident(String id) async {
     try {
       await _incidentsCollection.doc(id).delete();
-      print('Incident deleted successfully: $id');
+      print('Incident deleted successfully');
     } catch (e) {
       print('Error deleting incident: $e');
       throw Exception('Failed to delete incident: $e');

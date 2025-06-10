@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:typed_data';
 import 'dart:ui' as ui;
+import 'package:flutter/foundation.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:geolocator/geolocator.dart' as geo;
 import 'package:flutter/services.dart' show rootBundle;
@@ -159,5 +160,34 @@ class MapController {
       default:
         return 'assets/icons/others.png';
     }
+  }
+
+  // Update the marker creation to show cluster information
+  Marker _createIncidentMarker(Incident incident, VoidCallback onTap) {
+    return Marker(
+      markerId: MarkerId(incident.id ?? 'unknown'),
+      position: LatLng(incident.latitude, incident.longitude),
+      icon: _getCustomMarkerIcon(incident),
+      onTap: onTap,
+      infoWindow: InfoWindow(
+        title: incident.isInCluster 
+            ? '${incident.title} (${incident.totalReports} reports)'
+            : incident.title,
+        snippet: incident.location,
+      ),
+    );
+  }
+
+  // Create custom marker icons with cluster badges
+  BitmapDescriptor _getCustomMarkerIcon(Incident incident) {
+    // You would create custom marker icons here that show:
+    // - Incident type icon
+    // - Number badge if it's a cluster
+    // - Different colors based on verification count
+    
+    // For now, return default marker
+    return BitmapDescriptor.defaultMarkerWithHue(
+      incident.isInCluster ? BitmapDescriptor.hueBlue : BitmapDescriptor.hueRed,
+    );
   }
 }
