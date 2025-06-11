@@ -45,7 +45,8 @@ android {
         minSdkVersion(23)
 
         // inject API key from .env file
-        resValue("string", "google_maps_api_key", "\"${dotenv["GOOGLE_MAPS_API_KEY"]}\"")
+        val apiKey = dotenv.getProperty("GOOGLE_MAPS_API_KEY") ?: ""
+        resValue("string", "google_maps_api_key", apiKey)
 
     }
 
