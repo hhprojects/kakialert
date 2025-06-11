@@ -3,6 +3,7 @@ import 'package:geolocator/geolocator.dart';
 import '../models/incident_model.dart';
 import '../services/incident_service.dart';
 import '../services/openrouter_service.dart';
+import '../services/notification_service.dart';
 
 class IncidentClusteringService {
   final IncidentService _incidentService = IncidentService();
@@ -148,6 +149,14 @@ class IncidentClusteringService {
     } else {
       // Update existing incident instead of creating a new one
       await _addToExistingIncident(newIncident, clusterId);
+      
+      // Send notification for clustered incident
+      await NotificationService.sendIncidentNotification(
+        incidentType: newIncident.incident,
+        title: '${newIncident.title} (Verified Report)',
+        location: newIncident.location,
+        incidentId: clusterId,
+      );
     }
   }
 

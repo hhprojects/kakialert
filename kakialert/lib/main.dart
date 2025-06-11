@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'pages/main_navigation_page.dart';
 import 'pages/landing_page.dart';
 import 'pages/login_page.dart';
@@ -11,12 +12,28 @@ import 'firebase_options.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'services/notification_service.dart';
 
-
+/// Background message handler - must be top-level function
+@pragma('vm:entry-point')
+Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
+  // Initialize Firebase if not already done
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+  
+  print('🔔 Background message received: ${message.notification?.title}');
+  print('🔔 Background message body: ${message.notification?.body}');
+  print('🔔 Background message data: ${message.data}');
+  
+  // You could show local notification here if needed
+  // But FCM should handle it automatically for background messages
+}
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
   await dotenv.load(fileName: ".env"); // load the .env file
+  
+  // Set up background message handler
+  FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
+  
   runApp(const MyApp());
 }
 

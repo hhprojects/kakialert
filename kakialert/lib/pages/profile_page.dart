@@ -77,8 +77,6 @@ class _ProfilePageState extends State<ProfilePage> {
     }
   }
 
-
-
   Future<void> _toggleSubscription(String incidentType, bool currentValue) async {
     try {
       bool success;
@@ -155,8 +153,6 @@ class _ProfilePageState extends State<ProfilePage> {
             
             const SizedBox(height: 20),
 
-
-
             // Notification Subscriptions Section
             Card(
               child: Padding(
@@ -220,8 +216,6 @@ class _ProfilePageState extends State<ProfilePage> {
                     ),
                     const SizedBox(height: 16),
                     
-
-                    
                     SizedBox(
                       width: double.infinity,
                       child: ElevatedButton(
@@ -255,7 +249,108 @@ class _ProfilePageState extends State<ProfilePage> {
               ),
             ),
 
-            const SizedBox(height: 20),
+            const SizedBox(height: 16),
+            
+            // Debug Section for Notifications
+            Card(
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      '🔧 Notification Debug',
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                        color: TColorTheme.primaryRed,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    Text(
+                      'Test and debug notification functionality.',
+                      style: TextStyle(color: TColorTheme.gray),
+                    ),
+                    const SizedBox(height: 16),
+                    
+                    Row(
+                      children: [
+                        Expanded(
+                          child: ElevatedButton.icon(
+                            onPressed: () async {
+                              await NotificationService.sendTestNotification();
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text('Test notification sent! Check console logs.'),
+                                  backgroundColor: Colors.blue,
+                                ),
+                              );
+                            },
+                            icon: const Icon(Icons.notification_add),
+                            label: const Text('Test Notification'),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.blue,
+                              foregroundColor: Colors.white,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: ElevatedButton.icon(
+                            onPressed: () async {
+                              final status = await NotificationService.checkNotificationSetup();
+                              showDialog(
+                                context: context,
+                                builder: (context) => AlertDialog(
+                                  title: const Text('Notification Status'),
+                                  content: SingleChildScrollView(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: status.entries.map((entry) {
+                                        return Padding(
+                                          padding: const EdgeInsets.only(bottom: 8),
+                                          child: RichText(
+                                            text: TextSpan(
+                                              style: const TextStyle(color: Colors.black),
+                                              children: [
+                                                TextSpan(
+                                                  text: '${entry.key}: ',
+                                                  style: const TextStyle(fontWeight: FontWeight.bold),
+                                                ),
+                                                TextSpan(text: '${entry.value}'),
+                                              ],
+                                            ),
+                                          ),
+                                        );
+                                      }).toList(),
+                                    ),
+                                  ),
+                                  actions: [
+                                    TextButton(
+                                      onPressed: () => Navigator.pop(context),
+                                      child: const Text('Close'),
+                                    ),
+                                  ],
+                                ),
+                              );
+                            },
+                            icon: const Icon(Icons.info),
+                            label: const Text('Check Status'),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.green,
+                              foregroundColor: Colors.white,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ),
+
+            const SizedBox(height: 32),
           ],
         ),
       ),
