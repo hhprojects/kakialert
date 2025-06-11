@@ -64,6 +64,7 @@ dependencies:
   flutter_local_notifications: ^19.2.1
 
 dev_dependencies:
+  flutter_launcher_icons: ^0.13.1
   flutter_test:
     sdk: flutter
 
@@ -116,3 +117,10 @@ flutter:
   #
   # For details regarding fonts from package dependencies,
   # see https://flutter.dev/to/font-from-package
+
+flutter_launcher_icons:
+  android: true
+  ios: false  # Set to true if you want to change iOS icon too
+  image_path: "assets/icon/app_icon.png"  # Path to your 1024x1024 icon
+  adaptive_icon_background: "#ffffff"  # Background color for adaptive icon
+  adaptive_icon_foreground: "assets/icon/app_icon_foreground.png"  # Optional
