@@ -171,6 +171,22 @@ class _MapPageState extends State<MapPage> {
                           ),
                         ),
                       ),
+                      // Verified badge if incident has 3+ reports
+                      if (selectedIncident!.totalReports >= 3) ...[
+                        const SizedBox(width: 6),
+                        Container(
+                          padding: const EdgeInsets.all(2),
+                          decoration: BoxDecoration(
+                            color: Colors.blue,
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: const Icon(
+                            Icons.verified,
+                            color: Colors.white,
+                            size: 16,
+                          ),
+                        ),
+                      ],
                       const SizedBox(width: 12),
                       Text(
                         calculateDistanceFromUser(
@@ -196,13 +212,36 @@ class _MapPageState extends State<MapPage> {
                 ],
               ),
               SizedBox(height: 8),
-              Text(
-                selectedIncident!.location,
-                style: TextStyle(
-                  fontWeight: FontWeight.w700,
-                  fontSize: 16,
-                  color: Color(0xFF000000),
-                ),
+              Row(
+                children: [
+                  Text(
+                    selectedIncident!.location,
+                    style: TextStyle(
+                      fontWeight: FontWeight.w700,
+                      fontSize: 16,
+                      color: Color(0xFF000000),
+                    ),
+                  ),
+                  // Show verification count if verified
+                  if (selectedIncident!.totalReports >= 3) ...[
+                    const SizedBox(width: 8),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: Colors.blue.shade100,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Text(
+                        'Verified by ${selectedIncident!.totalReports} reports',
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: Colors.blue.shade700,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ),
+                  ],
+                ],
               ),
               Text(
                 selectedIncident!.description,
@@ -214,22 +253,6 @@ class _MapPageState extends State<MapPage> {
                 style: TextStyle(fontSize: 12, color: Colors.grey[700]),
               ),
               SizedBox(height: 12),
-              // GestureDetector(
-              //   onTap: () {
-              //     Navigator.push(
-              //       context,
-              //       MaterialPageRoute(builder: (context) => const ForumPage()),
-              //     );
-              //   },
-              //   child: Text(
-              //     'Navigate to forum',
-              //     style: TextStyle(
-              //       color: Colors.blue,
-
-              //       fontWeight: FontWeight.w500,
-              //     ),
-              //   ),
-              // ),
               GestureDetector(
                 onTap: () {
                   widget.onNavigateToForum();

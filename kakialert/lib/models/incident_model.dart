@@ -263,5 +263,5 @@ class Incident {
   // Helper methods
   bool get isClusterMaster => clusterId == null || clusterId == id;
   bool get isInCluster => clusterId != null;
-  int get totalReports => (verificationCount ?? 0) + 1;
+  int get totalReports => (clusterSize ?? 0) + 1;
 }

@@ -217,6 +217,22 @@ class _ForumPageState extends State<ForumPage> {
                             ),
                           ),
                         ),
+                        // Verified badge if incident has 3+ reports
+                        if (incident.totalReports >= 3) ...[
+                          const SizedBox(width: 6),
+                          Container(
+                            padding: const EdgeInsets.all(2),
+                            decoration: BoxDecoration(
+                              color: Colors.blue,
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: const Icon(
+                              Icons.verified,
+                              color: Colors.white,
+                              size: 12,
+                            ),
+                          ),
+                        ],
                         const SizedBox(width: 8),
                         Expanded(
                           child: Text(
@@ -232,17 +248,43 @@ class _ForumPageState extends State<ForumPage> {
 
                     const SizedBox(height: 6),
 
-                    // Title
-                    Text(
-                      title,
-                      style: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                        color: Colors.black,
-                      ),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
+                    // Title with verification info
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            title,
+                            style: const TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.black,
+                            ),
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ],
                     ),
+
+                    // Show verification count if verified
+                    if (incident.totalReports >= 3) ...[
+                      const SizedBox(height: 4),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: Colors.blue.shade100,
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Text(
+                          'Verified by ${incident.totalReports} reports',
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: Colors.blue.shade700,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ),
+                    ],
 
                     const SizedBox(height: 4),
 
