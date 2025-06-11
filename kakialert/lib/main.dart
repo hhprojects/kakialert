@@ -9,6 +9,7 @@ import 'pages/register_page.dart';
 import 'utils/TColorTheme.dart';
 import 'firebase_options.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'services/notification_service.dart';
 
 
 

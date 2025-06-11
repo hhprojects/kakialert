@@ -4,6 +4,7 @@ import 'package:kakialert/pages/form_photo_page.dart';
 import '../utils/TColorTheme.dart';
 import '../services/auth_service.dart';
 import '../services/incident_service.dart';
+import '../services/notification_service.dart';
 import '../models/incident_model.dart';
 import 'discussion_page.dart';
 
@@ -21,12 +22,20 @@ class _HomePageState extends State<HomePage> {
   Map<String, dynamic>? _userData;
   List<Incident> _latestIncidents = [];
   bool _isLoadingIncidents = true;
+  Map<String, bool> _userSubscriptions = {};
+  bool _isLoadingSubscriptions = true;
 
   @override
   void initState() {
     super.initState();
     _loadUserData();
     _loadLatestIncidents();
+    _loadUserSubscriptions();
+    _initializeNotifications();
+  }
+
+  Future<void> _initializeNotifications() async {
+    await NotificationService.initialize();
   }
 
   Future<void> _loadUserData() async {
@@ -63,6 +72,16 @@ class _HomePageState extends State<HomePage> {
           _isLoadingIncidents = false;
         });
       }
+    }
+  }
+
+  Future<void> _loadUserSubscriptions() async {
+    final subscriptions = await NotificationService.getUserSubscriptions();
+    if (mounted) {
+      setState(() {
+        _userSubscriptions = subscriptions;
+        _isLoadingSubscriptions = false;
+      });
     }
   }
 
@@ -138,16 +157,13 @@ class _HomePageState extends State<HomePage> {
                 const SizedBox(width: 16),
                 Expanded(
                   child: _buildActionButton(
-                    icon: Icons.location_on,
+                    icon: Icons.notifications_active,
                     iconColor: TColorTheme.white,
                     backgroundColor: TColorTheme.primaryBlue,
-                    title: 'Today\'s',
-                    subtitle: 'Incidents',
+                    title: 'Manage',
+                    subtitle: 'Alerts',
                     onTap: () {
-                      // TODO: Navigate to today's incidents page
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Today\'s Incidents clicked')),
-                      );
+                      _showSubscriptionBottomSheet();
                     },
                   ),
                 ),
@@ -155,6 +171,11 @@ class _HomePageState extends State<HomePage> {
             ),
 
             const SizedBox(height: 32),
+
+            // Subscription Summary
+            _buildSubscriptionSummary(),
+
+            const SizedBox(height: 24),
 
             // Latest Forums Section
             Row(
@@ -552,5 +573,245 @@ class _HomePageState extends State<HomePage> {
         ],
       ),
     );
+  }
+
+  Widget _buildSubscriptionSummary() {
+    if (_isLoadingSubscriptions) {
+      return Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: TColorTheme.white,
+          borderRadius: BorderRadius.circular(12),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.1),
+              blurRadius: 6,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: Row(
+          children: [
+            Icon(Icons.notifications_outlined, color: TColorTheme.gray),
+            const SizedBox(width: 12),
+            Text('Loading subscriptions...', style: TextStyle(color: TColorTheme.gray)),
+          ],
+        ),
+      );
+    }
+
+    final subscribedCount = _userSubscriptions.values.where((isSubscribed) => isSubscribed).length;
+    final totalTypes = NotificationService.incidentTypes.length;
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: TColorTheme.white,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.1),
+            blurRadius: 6,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: subscribedCount > 0 ? Colors.green.shade100 : Colors.grey.shade100,
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Icon(
+              subscribedCount > 0 ? Icons.notifications_active : Icons.notifications_off,
+              color: subscribedCount > 0 ? Colors.green.shade700 : Colors.grey.shade600,
+              size: 20,
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Alert Subscriptions',
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: TColorTheme.black,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  subscribedCount > 0 
+                      ? 'Subscribed to $subscribedCount/$totalTypes incident types'
+                      : 'No active subscriptions',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: TColorTheme.gray,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Icon(
+            Icons.arrow_forward_ios,
+            size: 16,
+            color: TColorTheme.gray,
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showSubscriptionBottomSheet() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setModalState) => Container(
+          height: MediaQuery.of(context).size.height * 0.8,
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+          ),
+          child: Column(
+            children: [
+              // Handle bar
+              Container(
+                margin: const EdgeInsets.only(top: 8),
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade300,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              
+              // Header
+              Padding(
+                padding: const EdgeInsets.all(20),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      'Manage Alert Subscriptions',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w600,
+                        color: TColorTheme.black,
+                      ),
+                    ),
+                    IconButton(
+                      onPressed: () => Navigator.pop(context),
+                      icon: const Icon(Icons.close),
+                    ),
+                  ],
+                ),
+              ),
+              
+              // Description
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                child: Text(
+                  'Choose which types of incidents you want to receive notifications for',
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: TColorTheme.gray,
+                  ),
+                ),
+              ),
+              
+              const SizedBox(height: 20),
+              
+              // Subscription list
+              Expanded(
+                child: ListView.builder(
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  itemCount: NotificationService.incidentTypes.length,
+                  itemBuilder: (context, index) {
+                    final entry = NotificationService.incidentTypes.entries.elementAt(index);
+                    final incidentType = entry.key;
+                    final displayName = entry.value;
+                    final isSubscribed = _userSubscriptions[incidentType] ?? false;
+                    
+                    return Card(
+                      margin: const EdgeInsets.only(bottom: 8),
+                      child: SwitchListTile(
+                        title: Text(
+                          displayName,
+                          style: const TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                        subtitle: Text(
+                          _getIncidentTypeDescription(incidentType),
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Colors.grey.shade600,
+                          ),
+                        ),
+                        value: isSubscribed,
+                        activeColor: TColorTheme.primaryBlue,
+                        onChanged: (value) async {
+                          if (value) {
+                            final success = await NotificationService.subscribeToIncidentType(incidentType);
+                            if (success) {
+                              setModalState(() {
+                                _userSubscriptions[incidentType] = true;
+                              });
+                              setState(() {
+                                _userSubscriptions[incidentType] = true;
+                              });
+                            }
+                          } else {
+                            final success = await NotificationService.unsubscribeFromIncidentType(incidentType);
+                            if (success) {
+                              setModalState(() {
+                                _userSubscriptions[incidentType] = false;
+                              });
+                              setState(() {
+                                _userSubscriptions[incidentType] = false;
+                              });
+                            }
+                          }
+                        },
+                      ),
+                    );
+                  },
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  String _getIncidentTypeDescription(String incidentType) {
+    switch (incidentType) {
+      case 'medical':
+        return 'Health emergencies, injuries, ambulance responses';
+      case 'fire':
+        return 'Fires, smoke, fire department responses';
+      case 'accident':
+        return 'Vehicle accidents, collisions, road incidents';
+      case 'violence':
+        return 'Physical altercations, vandalism, criminal activity';
+      case 'rescue':
+        return 'Search and rescue operations, emergency evacuations';
+      case 'hdb_facilities':
+        return 'Public housing issues, building maintenance, utilities';
+      case 'mrt':
+        return 'Train delays, breakdowns, platform incidents';
+      case 'others':
+        return 'General incidents and safety concerns';
+      default:
+        return 'Receive notifications for this incident type';
+    }
   }
 } 

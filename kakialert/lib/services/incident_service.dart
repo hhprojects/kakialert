@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/incident_model.dart';
+import 'notification_service.dart';
 
 class IncidentService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
@@ -13,6 +14,15 @@ class IncidentService {
       print('Creating incident: ${incident.title}');
       final docRef = await _incidentsCollection.add(incident.toMapForCreation());
       print('Incident created successfully with ID: ${docRef.id}');
+      
+      // Send notification for new incident
+      await NotificationService.sendIncidentNotification(
+        incidentType: incident.incident,
+        title: incident.title,
+        location: incident.location,
+        incidentId: docRef.id,
+      );
+      
       return docRef.id;
     } catch (e) {
       print('Error creating incident: $e');

@@ -146,54 +146,59 @@ class IncidentClusteringService {
       // No cluster found, create new incident as potential cluster head
       await _incidentService.createIncident(newIncident);
     } else {
-      // Add to existing cluster
-      await _addToCluster(newIncident, clusterId);
+      // Update existing incident instead of creating a new one
+      await _addToExistingIncident(newIncident, clusterId);
     }
   }
 
-  /// Add incident to existing cluster
-  Future<void> _addToCluster(Incident incident, String clusterId) async {
-    // Update the new incident with cluster ID
-    final clusteredIncident = incident.copyWith(clusterId: clusterId);
-    await _incidentService.createIncident(clusteredIncident);
-
-    // Update cluster statistics
-    await _updateClusterStats(clusterId);
-  }
-
-  /// Update cluster statistics
-  Future<void> _updateClusterStats(String clusterId) async {
-    final clusterIncidents = await _incidentService.getIncidentsByCluster(clusterId);
-    
-    // Update the master incident with aggregated data
-    if (clusterIncidents.isNotEmpty) {
-      final masterIncident = clusterIncidents.first;
-      final stats = _calculateClusterStats(clusterIncidents);
-      
-      await _incidentService.updateIncident(masterIncident.id!, {
-        'clusterSize': clusterIncidents.length,
-        'verificationCount': clusterIncidents.length - 1,
-        'lastUpdated': DateTime.now().toIso8601String(),
-        'aggregatedImageUrls': stats['allImageUrls'],
-        'contributorIds': stats['contributorIds'],
-      });
-    }
-  }
-
-  Map<String, dynamic> _calculateClusterStats(List<Incident> incidents) {
-    final allImageUrls = <String>[];
-    final contributorIds = <String>[];
-    
-    for (final incident in incidents) {
-      allImageUrls.addAll(incident.imageUrls);
-      if (!contributorIds.contains(incident.userId)) {
-        contributorIds.add(incident.userId);
+  /// Add incident data to existing cluster (update master incident)
+  Future<void> _addToExistingIncident(Incident newIncident, String clusterId) async {
+    try {
+      // Get the current master incident
+      final masterIncident = await _incidentService.getIncidentById(clusterId);
+      if (masterIncident == null) {
+        throw Exception('Master incident not found');
       }
+
+      // Prepare updated data
+      final updatedContributorIds = List<String>.from(masterIncident.contributorIds);
+      if (!updatedContributorIds.contains(newIncident.userId)) {
+        updatedContributorIds.add(newIncident.userId);
+      }
+
+      final updatedImageUrls = List<String>.from(masterIncident.aggregatedImageUrls.isNotEmpty 
+          ? masterIncident.aggregatedImageUrls 
+          : masterIncident.imageUrls);
+      updatedImageUrls.addAll(newIncident.imageUrls);
+
+      final updatedImagePublicIds = List<String>.from(masterIncident.imagePublicIds);
+      updatedImagePublicIds.addAll(newIncident.imagePublicIds);
+
+      // Calculate new verification count
+      final newVerificationCount = updatedContributorIds.length - 1;
+
+      // Update the master incident with aggregated data
+      await _incidentService.updateIncident(clusterId, {
+        'verificationCount': newVerificationCount,
+        'contributorIds': updatedContributorIds,
+        'aggregatedImageUrls': updatedImageUrls,
+        'imagePublicIds': updatedImagePublicIds, // Also update this for completeness
+        'lastUpdated': DateTime.now().toIso8601String(),
+        'clusterSize': updatedContributorIds.length,
+      });
+
+      print('Successfully updated incident $clusterId with new contributor ${newIncident.userId}');
+    } catch (e) {
+      print('Error updating existing incident: $e');
+      throw Exception('Failed to add to existing incident: $e');
     }
-    
-    return {
-      'allImageUrls': allImageUrls,
-      'contributorIds': contributorIds,
-    };
+  }
+
+  /// Add incident to existing cluster (DEPRECATED - use _addToExistingIncident instead)
+  @deprecated
+  Future<void> _addToCluster(Incident incident, String clusterId) async {
+    // This method is deprecated and should not be used
+    // Use _addToExistingIncident instead
+    throw Exception('This method is deprecated. Use _addToExistingIncident instead.');
   }
 } 
