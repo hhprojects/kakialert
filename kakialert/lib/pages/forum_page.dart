@@ -77,7 +77,7 @@ class _ForumPageState extends State<ForumPage> {
 
   String _formatDateTime(DateTime? datetime) {
     if (datetime == null) return 'Unknown time';
-    
+
     try {
       final now = DateTime.now();
       final difference = now.difference(datetime);
@@ -102,11 +102,11 @@ class _ForumPageState extends State<ForumPage> {
     if (description == null || description.isEmpty) {
       return 'No description provided';
     }
-    
+
     if (description.length <= maxLength) {
       return description;
     }
-    
+
     return '${description.substring(0, maxLength)}...';
   }
 
@@ -146,47 +146,51 @@ class _ForumPageState extends State<ForumPage> {
                   borderRadius: BorderRadius.circular(8),
                   color: Colors.grey.shade200,
                 ),
-                child: firstImageUrl != null
-                    ? ClipRRect(
-                        borderRadius: BorderRadius.circular(8),
-                        child: Image.network(
-                          firstImageUrl,
-                          fit: BoxFit.cover,
-                          loadingBuilder: (context, child, loadingProgress) {
-                            if (loadingProgress == null) return child;
-                            return Container(
-                              color: Colors.grey.shade200,
-                              child: const Center(
-                                child: CircularProgressIndicator(strokeWidth: 2),
-                              ),
-                            );
-                          },
-                          errorBuilder: (context, error, stackTrace) => Container(
-                            color: Colors.grey.shade300,
-                            child: Icon(
-                              Icons.image_not_supported,
-                              color: Colors.grey.shade600,
-                              size: 30,
+                child:
+                    firstImageUrl != null
+                        ? ClipRRect(
+                          borderRadius: BorderRadius.circular(8),
+                          child: Image.network(
+                            firstImageUrl,
+                            fit: BoxFit.cover,
+                            loadingBuilder: (context, child, loadingProgress) {
+                              if (loadingProgress == null) return child;
+                              return Container(
+                                color: Colors.grey.shade200,
+                                child: const Center(
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                  ),
+                                ),
+                              );
+                            },
+                            errorBuilder:
+                                (context, error, stackTrace) => Container(
+                                  color: Colors.grey.shade300,
+                                  child: Icon(
+                                    Icons.image_not_supported,
+                                    color: Colors.grey.shade600,
+                                    size: 30,
+                                  ),
+                                ),
+                          ),
+                        )
+                        : Container(
+                          decoration: BoxDecoration(
+                            color: TColorTheme.getIncidentColor(incidentType),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Center(
+                            child: Text(
+                              _getIncidentIcon(incidentType),
+                              style: const TextStyle(fontSize: 30),
                             ),
                           ),
                         ),
-                      )
-                    : Container(
-                        decoration: BoxDecoration(
-                          color: TColorTheme.getIncidentColor(incidentType),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: Center(
-                          child: Text(
-                            _getIncidentIcon(incidentType),
-                            style: const TextStyle(fontSize: 30),
-                          ),
-                        ),
-                      ),
               ),
-              
+
               const SizedBox(width: 12),
-              
+
               // Content on the right
               Expanded(
                 child: Column(
@@ -196,7 +200,10 @@ class _ForumPageState extends State<ForumPage> {
                     Row(
                       children: [
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 4,
+                          ),
                           decoration: BoxDecoration(
                             color: TColorTheme.getIncidentColor(incidentType),
                             borderRadius: BorderRadius.circular(12),
@@ -222,9 +229,9 @@ class _ForumPageState extends State<ForumPage> {
                         ),
                       ],
                     ),
-                    
+
                     const SizedBox(height: 6),
-                    
+
                     // Title
                     Text(
                       title,
@@ -236,9 +243,9 @@ class _ForumPageState extends State<ForumPage> {
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                     ),
-                    
+
                     const SizedBox(height: 4),
-                    
+
                     // Truncated description
                     Text(
                       _truncateDescription(description, 100),
@@ -249,9 +256,9 @@ class _ForumPageState extends State<ForumPage> {
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                     ),
-                    
+
                     const SizedBox(height: 6),
-                    
+
                     // Location and user info
                     Row(
                       children: [
@@ -296,75 +303,59 @@ class _ForumPageState extends State<ForumPage> {
   @override
   Widget build(BuildContext context) {
     return _isLoading
-          ? const Center(
-              child: CircularProgressIndicator(),
-            )
-          : _error.isNotEmpty
-              ? Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(
-                        Icons.error_outline,
-                        size: 64,
-                        color: Colors.grey.shade400,
-                      ),
-                      const SizedBox(height: 16),
-                      Text(
-                        _error,
-                        style: TextStyle(
-                          color: Colors.grey.shade600,
-                          fontSize: 16,
-                        ),
-                        textAlign: TextAlign.center,
-                      ),
-                      const SizedBox(height: 16),
-                      ElevatedButton(
-                        onPressed: _refreshIncidents,
-                        child: const Text('Retry'),
-                      ),
-                    ],
-                  ),
-                )
-              : _incidents.isEmpty
-                  ? Center(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(
-                            Icons.forum_outlined,
-                            size: 64,
-                            color: Colors.grey.shade400,
-                          ),
-                          const SizedBox(height: 16),
-                          Text(
-                            'No incidents reported yet',
-                            style: TextStyle(
-                              color: Colors.grey.shade600,
-                              fontSize: 18,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          Text(
-                            'Be the first to report an incident!',
-                            style: TextStyle(
-                              color: Colors.grey.shade500,
-                              fontSize: 14,
-                            ),
-                          ),
-                        ],
-                      ),
-                    )
-                  : RefreshIndicator(
-                      onRefresh: _refreshIncidents,
-                      child: ListView.builder(
-                        padding: const EdgeInsets.symmetric(vertical: 8),
-                        itemCount: _incidents.length,
-                        itemBuilder: (context, index) {
-                          return _buildIncidentCard(_incidents[index]);
-                        },
-                      ),
-                    );
+        ? const Center(child: CircularProgressIndicator())
+        : _error.isNotEmpty
+        ? Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.error_outline, size: 64, color: Colors.grey.shade400),
+              const SizedBox(height: 16),
+              Text(
+                _error,
+                style: TextStyle(color: Colors.grey.shade600, fontSize: 16),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 16),
+              ElevatedButton(
+                onPressed: _refreshIncidents,
+                child: const Text('Retry'),
+              ),
+            ],
+          ),
+        )
+        : _incidents.isEmpty
+        ? Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.forum_outlined, size: 64, color: Colors.grey.shade400),
+              const SizedBox(height: 16),
+              Text(
+                'No incidents reported yet',
+                style: TextStyle(
+                  color: Colors.grey.shade600,
+                  fontSize: 18,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Be the first to report an incident!',
+                style: TextStyle(color: Colors.grey.shade500, fontSize: 14),
+              ),
+            ],
+          ),
+        )
+        : RefreshIndicator(
+          onRefresh: _refreshIncidents,
+          child: ListView.builder(
+            padding: const EdgeInsets.symmetric(vertical: 8),
+            itemCount: _incidents.length,
+            itemBuilder: (context, index) {
+              return _buildIncidentCard(_incidents[index]);
+            },
+          ),
+        );
   }
-} 
+}

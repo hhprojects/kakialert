@@ -31,15 +31,25 @@ class _MainNavigationPageState extends State<MainNavigationPage> {
   // ];
 
   List<Widget> get _pages => [
-    const HomePage(),
-    MapPage(
+    HomePage(
+      key: ValueKey(_currentIndex == 0), // forces HomePage to rebuild
       onNavigateToForum: () {
         setState(() {
-          _currentIndex = 2; // Index of Forum tab
+          _currentIndex = 2; // Go to Forum tab
         });
       },
     ),
-    const ForumPage(),
+    MapPage(
+      key: ValueKey(_currentIndex == 1), // forces MapPage to rebuild
+      onNavigateToForum: () {
+        setState(() {
+          _currentIndex = 2; // Go to Forum tab
+        });
+      },
+    ),
+    ForumPage(
+      key: ValueKey(_currentIndex == 2), // forces ForumPage to rebuild
+    ),
     const ProfilePage(),
   ];
 
