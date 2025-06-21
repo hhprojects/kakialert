@@ -276,7 +276,7 @@ class _ForumPageState extends State<ForumPage> {
                           borderRadius: BorderRadius.circular(8),
                         ),
                         child: Text(
-                          'Verified by ${incident.totalReports} reports',
+                          'Reported by ${incident.totalReports} reports',
                           style: TextStyle(
                             fontSize: 11,
                             color: Colors.blue.shade700,

@@ -215,32 +215,14 @@ class _MapPageState extends State<MapPage> {
               Row(
                 children: [
                   Text(
-                    selectedIncident!.location,
+                    selectedIncident!.title,
                     style: TextStyle(
                       fontWeight: FontWeight.w700,
                       fontSize: 16,
                       color: Color(0xFF000000),
                     ),
                   ),
-                  // Show verification count if verified
-                  if (selectedIncident!.totalReports >= 3) ...[
-                    const SizedBox(width: 8),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                      decoration: BoxDecoration(
-                        color: Colors.blue.shade100,
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Text(
-                        'Verified by ${selectedIncident!.totalReports} reports',
-                        style: TextStyle(
-                          fontSize: 11,
-                          color: Colors.blue.shade700,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                    ),
-                  ],
+                 
                 ],
               ),
               Text(

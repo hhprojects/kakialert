@@ -18,6 +18,7 @@ class _ProfilePageState extends State<ProfilePage> {
   Map<String, dynamic>? _userData;
   bool _isLoading = false;
   Map<String, bool> _userSubscriptions = {};
+  String? _selectedTestIncidentType;
 
   @override
   void initState() {
@@ -344,6 +345,227 @@ class _ProfilePageState extends State<ProfilePage> {
                           ),
                         ),
                       ],
+                    ),
+                    
+                    const SizedBox(height: 12),
+                    
+                    // Force notification test
+                    ElevatedButton.icon(
+                      onPressed: () async {
+                        await NotificationService.forceShowNotification(
+                          title: 'Panic as Smoke Engulfs Building (Verified Report)',
+                          body: 'Emergency Alert reported at 10 Bayfront Ave, Singapore 018956, Singapore',
+                          data: {'test': 'foreground', 'timestamp': DateTime.now().toIso8601String()},
+                        );
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('Force notification sent! Should appear in notification drawer.'),
+                            backgroundColor: Colors.purple,
+                          ),
+                        );
+                      },
+                      icon: const Icon(Icons.notification_important),
+                      label: const Text('Force Foreground Notification'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.purple,
+                        foregroundColor: Colors.white,
+                      ),
+                    ),
+                    
+                    const SizedBox(height: 12),
+                    
+                    // Topic Test Section
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: Colors.orange.shade50,
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: Colors.orange.shade200),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Icon(Icons.group, color: Colors.orange.shade700, size: 20),
+                              const SizedBox(width: 8),
+                              Text(
+                                'Test Topic Notifications',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.orange.shade700,
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            'Send test notifications to ALL users subscribed to an incident type:',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: Colors.orange.shade600,
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                          Row(
+                            children: [
+                              Expanded(
+                                flex: 2,
+                                child: DropdownButtonFormField<String>(
+                                  decoration: InputDecoration(
+                                    labelText: 'Incident Type',
+                                    border: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(6),
+                                    ),
+                                    contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                  ),
+                                  value: _selectedTestIncidentType,
+                                  items: NotificationService.incidentTypes.entries.map((entry) {
+                                    return DropdownMenuItem(
+                                      value: entry.key,
+                                      child: Text(
+                                        entry.value,
+                                        style: const TextStyle(fontSize: 12),
+                                      ),
+                                    );
+                                  }).toList(),
+                                  onChanged: (value) {
+                                    setState(() {
+                                      _selectedTestIncidentType = value;
+                                    });
+                                  },
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: ElevatedButton.icon(
+                                  onPressed: _selectedTestIncidentType != null
+                                      ? () async {
+                                          await NotificationService.sendTestNotificationToTopic(_selectedTestIncidentType!);
+                                          ScaffoldMessenger.of(context).showSnackBar(
+                                            SnackBar(
+                                              content: Text('Test sent to ${NotificationService.incidentTypes[_selectedTestIncidentType]} subscribers!'),
+                                              backgroundColor: Colors.orange,
+                                            ),
+                                          );
+                                        }
+                                      : null,
+                                  icon: const Icon(Icons.send, size: 16),
+                                  label: const Text('Send', style: TextStyle(fontSize: 12)),
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: Colors.orange,
+                                    foregroundColor: Colors.white,
+                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 12),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+
+            // DEBUG: Notification Debugging Section
+            Card(
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      '🔧 Notification Debugging',
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                        color: TColorTheme.primaryBlue,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    Text(
+                      'Use these tools to debug notification issues.',
+                      style: TextStyle(color: TColorTheme.gray),
+                    ),
+                    const SizedBox(height: 16),
+                    
+                    // Check Setup Button
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton.icon(
+                        onPressed: () async {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('Checking notification setup... Check console for details.'),
+                              backgroundColor: Colors.blue,
+                            ),
+                          );
+                          final status = await NotificationService.checkNotificationSetup();
+                          print('🔍 Setup check completed: ${status.keys.length} items');
+                        },
+                        icon: const Icon(Icons.bug_report),
+                        label: const Text('Check Notification Setup'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.blue,
+                          foregroundColor: Colors.white,
+                        ),
+                      ),
+                    ),
+                    
+                    const SizedBox(height: 8),
+                    
+                    // Refresh Token Button
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton.icon(
+                        onPressed: () async {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('Refreshing FCM token...'),
+                              backgroundColor: Colors.orange,
+                            ),
+                          );
+                          final success = await NotificationService.refreshFCMToken();
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text(success ? 'FCM token refreshed successfully' : 'Failed to refresh FCM token'),
+                              backgroundColor: success ? Colors.green : Colors.red,
+                            ),
+                          );
+                        },
+                        icon: const Icon(Icons.refresh),
+                        label: const Text('Refresh FCM Token'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.orange,
+                          foregroundColor: Colors.white,
+                        ),
+                      ),
+                    ),
+                    
+                    const SizedBox(height: 8),
+                    
+                    // Complete Test Button
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton.icon(
+                        onPressed: () async {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('Running complete notification test... Check console for details.'),
+                              backgroundColor: Colors.purple,
+                            ),
+                          );
+                          await NotificationService.testCompleteNotificationFlow();
+                        },
+                        icon: const Icon(Icons.play_arrow),
+                        label: const Text('Run Complete Test'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.purple,
+                          foregroundColor: Colors.white,
+                        ),
+                      ),
                     ),
                   ],
                 ),

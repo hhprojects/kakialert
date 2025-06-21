@@ -63,6 +63,7 @@ dependencies:
   googleapis_auth: ^2.0.0
   flutter_local_notifications: ^19.2.1
 
+
 dev_dependencies:
   flutter_launcher_icons: ^0.13.1
   flutter_test:

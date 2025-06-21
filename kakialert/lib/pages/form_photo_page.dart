@@ -4,6 +4,7 @@ import 'package:image_picker/image_picker.dart';
 import 'form_detail_page.dart';
 import '../services/openrouter_service.dart';
 import '../services/image_metadata_service.dart';
+import '../services/arcore_depth_service.dart';
 
 class FormPhotoPage extends StatefulWidget {
   const FormPhotoPage({super.key});
@@ -18,8 +19,10 @@ class _FormPhotoPageState extends State<FormPhotoPage> {
   List<XFile> _selectedImages = [];
   bool _isAnalyzing = false;
   List<Map<String, dynamic>> _imageValidationResults = [];
+  List<Map<String, dynamic>> _depthValidationResults = [];
   Map<String, dynamic>? _incidentValidationResult;
   bool _isValidatingIncident = false;
+  bool _isValidatingDepth = false;
 
   @override
   void initState() {
@@ -35,9 +38,10 @@ class _FormPhotoPageState extends State<FormPhotoPage> {
           _selectedImages.addAll(images);
         });
         
-        // Validate metadata and incident content
+        // Validate in sequence: metadata -> AI -> AR
         await _validateSelectedImages();
         await _validateIncidentContent();
+        await _validateImageDepth();
       }
     } catch (e) {
       _showErrorSnackBar('Error selecting images: $e');
@@ -53,9 +57,10 @@ class _FormPhotoPageState extends State<FormPhotoPage> {
           _selectedImages.add(image);
         });
         
-        // Validate metadata and incident content
+        // Validate in sequence: metadata -> AI -> AR
         await _validateSelectedImages();
         await _validateIncidentContent();
+        await _validateImageDepth();
       }
     } catch (e) {
       _showErrorSnackBar('Error taking photo: $e');
@@ -99,6 +104,43 @@ class _FormPhotoPageState extends State<FormPhotoPage> {
     
     // Show warnings for invalid images
     _showValidationWarnings();
+  }
+
+  Future<void> _validateImageDepth() async {
+    if (_selectedImages.isEmpty) return;
+
+    setState(() {
+      _isValidatingDepth = true;
+    });
+
+    List<Map<String, dynamic>> results = [];
+    
+    try {
+      for (int i = 0; i < _selectedImages.length; i++) {
+        final image = _selectedImages[i];
+        final depthAnalysis = await ARCoreDepthService.analyzeImageDepth(image.path);
+        
+        results.add({
+          'index': i,
+          'analysis': depthAnalysis,
+        });
+      }
+      
+      setState(() {
+        _depthValidationResults = results;
+        _isValidatingDepth = false;
+      });
+      
+      // Show warnings for images detected as 2D screens
+      _showDepthValidationWarnings();
+      
+    } catch (e) {
+      setState(() {
+        _isValidatingDepth = false;
+      });
+      print('Depth validation failed: $e');
+      // Continue without validation if depth analysis fails
+    }
   }
 
   Future<void> _validateIncidentContent() async {
@@ -189,6 +231,121 @@ class _FormPhotoPageState extends State<FormPhotoPage> {
     
     // Re-validate remaining images
     _validateSelectedImages();
+  }
+
+  void _showDepthValidationWarnings() {
+    final screenImages = _depthValidationResults
+        .where((result) => !result['analysis']['isValid'])
+        .toList();
+    
+    if (screenImages.isNotEmpty) {
+      showDialog(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: Row(
+            children: [
+              Icon(Icons.warning, color: Colors.red),
+              SizedBox(width: 8),
+              Text('Screen Detection'),
+            ],
+          ),
+          content: ConstrainedBox(
+            constraints: BoxConstraints(
+              maxHeight: MediaQuery.of(context).size.height * 0.6, // Max 60% of screen height
+              maxWidth: MediaQuery.of(context).size.width * 0.9,   // Max 90% of screen width
+            ),
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Some images appear to be photographed from a screen or display:',
+                    style: TextStyle(fontWeight: FontWeight.w500),
+                  ),
+                  SizedBox(height: 12),
+                  ...screenImages.map((result) => Container(
+                    margin: EdgeInsets.only(bottom: 8),
+                    padding: EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.red.shade50,
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: Colors.red.shade200),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Image ${result['index'] + 1}:',
+                          style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
+                        ),
+                        Text(
+                          '${result['analysis']['reason']}',
+                          style: TextStyle(fontSize: 12),
+                        ),
+                        if (result['analysis']['confidence'] != null)
+                          Text(
+                            'Confidence: ${(result['analysis']['confidence'] * 100).toStringAsFixed(1)}%',
+                            style: TextStyle(fontSize: 10, color: Colors.grey[600]),
+                          ),
+                      ],
+                    ),
+                  )),
+                  SizedBox(height: 8),
+                  Container(
+                    padding: EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: Colors.blue.shade50,
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                    child: Text(
+                      'ℹ️ Please take photos of real incidents, not from screens or displays.',
+                      style: TextStyle(fontSize: 12, fontStyle: FontStyle.italic),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: Text('Continue Anyway'),
+            ),
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+                _removeScreenImages();
+              },
+              child: Text('Remove Screen Images'),
+            ),
+          ],
+        ),
+      );
+    }
+  }
+
+  void _removeScreenImages() {
+    final screenIndices = _depthValidationResults
+        .where((result) => !result['analysis']['isValid'])
+        .map((result) => result['index'] as int)
+        .toList()
+        ..sort((a, b) => b.compareTo(a)); // Sort in descending order
+    
+    setState(() {
+      for (final index in screenIndices) {
+        _selectedImages.removeAt(index);
+      }
+      // Clear validation results since indices have changed
+      _depthValidationResults.clear();
+      _imageValidationResults.clear();
+    });
+    
+    // Re-validate remaining images
+    if (_selectedImages.isNotEmpty) {
+      _validateSelectedImages();
+      _validateImageDepth();
+    }
   }
 
   void _showIncidentValidationWarning() {
@@ -293,6 +450,9 @@ class _FormPhotoPageState extends State<FormPhotoPage> {
               final metadataValidation = _imageValidationResults
                   .where((result) => result['index'] == index)
                   .firstOrNull?['validation'];
+              final depthValidation = _depthValidationResults
+                  .where((result) => result['index'] == index)
+                  .firstOrNull?['analysis'];
               
               return Container(
                 margin: const EdgeInsets.only(right: 8),
@@ -329,11 +489,54 @@ class _FormPhotoPageState extends State<FormPhotoPage> {
                           ),
                         ),
                       ),
+                    // Depth validation indicator  
+                    if (depthValidation != null)
+                      Positioned(
+                        top: 4,
+                        left: 20,
+                        child: Container(
+                          padding: const EdgeInsets.all(2),
+                          decoration: BoxDecoration(
+                            color: depthValidation['isValid'] 
+                                ? Colors.purple 
+                                : Colors.red,
+                            shape: BoxShape.circle,
+                          ),
+                          child: Icon(
+                            depthValidation['isValid'] 
+                                ? Icons.view_in_ar 
+                                : Icons.monitor,
+                            color: Colors.white,
+                            size: 12,
+                          ),
+                        ),
+                      ),
+                    // Loading indicator for depth validation
+                    if (_isValidatingDepth)
+                      Positioned(
+                        top: 4,
+                        left: 20,
+                        child: Container(
+                          padding: const EdgeInsets.all(2),
+                          decoration: BoxDecoration(
+                            color: Colors.grey,
+                            shape: BoxShape.circle,
+                          ),
+                          child: SizedBox(
+                            width: 12,
+                            height: 12,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 1,
+                              valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                            ),
+                          ),
+                        ),
+                      ),
                     // Incident validation indicator
                     if (_incidentValidationResult != null)
                       Positioned(
                         top: 4,
-                        left: 20,
+                        left: 36,
                         child: Container(
                           padding: const EdgeInsets.all(2),
                           decoration: BoxDecoration(
@@ -355,7 +558,7 @@ class _FormPhotoPageState extends State<FormPhotoPage> {
                     if (_isValidatingIncident)
                       Positioned(
                         top: 4,
-                        left: 20,
+                        left: 36,
                         child: Container(
                           padding: const EdgeInsets.all(2),
                           decoration: BoxDecoration(
@@ -398,7 +601,7 @@ class _FormPhotoPageState extends State<FormPhotoPage> {
           ),
         ),
         // Validation summary
-        if (_imageValidationResults.isNotEmpty || _incidentValidationResult != null)
+        if (_imageValidationResults.isNotEmpty || _incidentValidationResult != null || _depthValidationResults.isNotEmpty || _isValidatingDepth)
           Padding(
             padding: const EdgeInsets.only(top: 8),
             child: Column(
@@ -412,14 +615,28 @@ class _FormPhotoPageState extends State<FormPhotoPage> {
                       color: _hasInvalidMetadata() ? Colors.orange[700] : Colors.green[700],
                     ),
                   ),
-                if (_incidentValidationResult != null)
+                if (_incidentValidationResult != null || _isValidatingIncident)
                   Text(
                     _getIncidentValidationSummary(),
                     style: TextStyle(
                       fontSize: 12,
-                      color: _incidentValidationResult!['isValid'] 
+                      color: _isValidatingIncident 
+                          ? Colors.grey[600]
+                          : (_incidentValidationResult!['isValid'] 
                           ? Colors.blue[700] 
-                          : Colors.red[700],
+                              : Colors.red[700]),
+                    ),
+                  ),
+                if (_depthValidationResults.isNotEmpty || _isValidatingDepth)
+                  Text(
+                    _getARValidationSummary(),
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: _isValidatingDepth 
+                          ? Colors.grey[600]
+                          : (_hasInvalidDepth() 
+                              ? Colors.red[700] 
+                              : Colors.purple[700]),
                     ),
                   ),
               ],
@@ -441,6 +658,10 @@ class _FormPhotoPageState extends State<FormPhotoPage> {
   }
 
   String _getIncidentValidationSummary() {
+    if (_isValidatingIncident) {
+      return '🔄 AI analyzing incident content...';
+    }
+    
     if (_incidentValidationResult == null) return '';
     
     if (_incidentValidationResult!['isValid']) {
@@ -450,8 +671,29 @@ class _FormPhotoPageState extends State<FormPhotoPage> {
     }
   }
 
+  String _getARValidationSummary() {
+    if (_isValidatingDepth) {
+      return '🔄 AR analyzing image depth...';
+    }
+    
+    if (_depthValidationResults.isEmpty) return '';
+    
+    final total = _depthValidationResults.length;
+    final screenImages = _depthValidationResults.where((r) => !r['analysis']['isValid']).length;
+    
+    if (screenImages == 0) {
+      return '👁️ AR verified: All images show real 3D scenes';
+    } else {
+      return '🖥️ AR warning: $screenImages of $total images appear to be from screens';
+    }
+  }
+
   bool _hasInvalidMetadata() {
     return _imageValidationResults.any((result) => !result['validation']['isValid']);
+  }
+
+  bool _hasInvalidDepth() {
+    return _depthValidationResults.any((result) => !result['analysis']['isValid']);
   }
 
   Future<void> _navigateToDetailPage() async {
@@ -484,8 +726,20 @@ class _FormPhotoPageState extends State<FormPhotoPage> {
       return;
     }
 
+    // Check AR depth validation - BLOCK if screen images detected
+    if (_hasInvalidDepth()) {
+      _showValidationBlockedDialog(
+        title: 'Screen Images Detected',
+        message: 'AR analysis detected that some images appear to be photographed from screens or displays.\n\n'
+            'Please only submit photos taken directly of real incidents, not images from websites, news articles, or other screens.',
+        icon: Icons.monitor,
+        color: Colors.red,
+      );
+      return;
+    }
+
     // If validation is still in progress, wait
-    if (_isValidatingIncident) {
+    if (_isValidatingIncident || _isValidatingDepth) {
       _showErrorSnackBar('Please wait for image validation to complete');
       return;
     }
@@ -506,6 +760,7 @@ class _FormPhotoPageState extends State<FormPhotoPage> {
       enhancedAnalysis['validationStatus'] = 'fully_validated';
       enhancedAnalysis['metadataValidated'] = 'true';
       enhancedAnalysis['contentValidated'] = 'true';
+      enhancedAnalysis['depthValidated'] = 'true';
 
       // Navigate to detail page with analysis results
       if (mounted) {

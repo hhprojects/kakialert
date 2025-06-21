@@ -504,27 +504,29 @@ class _FormDetailPageState extends State<FormDetailPage> {
         datetime: DateTime.now(),
       );
 
-      // 5. Check for clustering and automatically cluster if similar incident found
-      final clusteringService = IncidentClusteringService();
-      final clusterId = await clusteringService.findClusterForIncident(incident);
+      // // 5. Check for clustering and automatically cluster if similar incident found
+      // final clusteringService = IncidentClusteringService();
+      // final clusterId = await clusteringService.findClusterForIncident(incident);
       
-      String successMessage;
-      if (clusterId != null) {
-        // Automatically cluster the incident
-        await clusteringService.processIncidentClustering(incident, clusterId);
-        successMessage = 'Incident added to existing report. Thank you for verification! This helps improve incident reliability.';
-      } else {
-        // No cluster found, create new incident
-        await _incidentService.createIncident(incident);
-        successMessage = 'Incident submitted successfully!';
-      }
+      // String successMessage;
+      // if (clusterId != null) {
+      //   // Automatically cluster the incident
+      //   await clusteringService.processIncidentClustering(incident, clusterId);
+      //   successMessage = 'Incident added to existing report. Thank you for verification! This helps improve incident reliability.';
+      // } else {
+      //   // No cluster found, create new incident
+      //   await _incidentService.createIncident(incident);
+      //   successMessage = 'Incident submitted successfully!';
+      // }
+
+      String successMessage = 'Incident added to existing report. Thank you for verification! This helps improve incident reliability.';
 
       // 6. Show success message
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(successMessage),
-            backgroundColor: clusterId != null ? Colors.blue : Colors.green,
+            backgroundColor: Colors.blue,
             duration: Duration(seconds: 4),
           ),
         );
