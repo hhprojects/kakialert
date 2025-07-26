@@ -10,7 +10,6 @@ import 'pages/register_page.dart';
 import 'utils/TColorTheme.dart';
 import 'firebase_options.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
-import 'services/notification_service.dart';
 
 /// Background message handler - must be top-level function
 @pragma('vm:entry-point')
@@ -29,7 +28,7 @@ Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
-  await dotenv.load(fileName: ".env"); // load the .env file
+  await dotenv.load(fileName: ".env");
   
   // Set up background message handler
   FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
